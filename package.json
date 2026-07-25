@@ -1,0 +1,39 @@
+{
+  "name": "slab-showdown",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "dev:all": "./scripts/dev.sh",
+    "dry-run": "./scripts/dry-run/run.sh",
+    "dry-run:ui": "./scripts/dry-run/run-ui.sh",
+    "dry-run:fork": "./scripts/dry-run/run-fork.sh",
+    "dry-run:tournament": "./scripts/dry-run/run-tournament.sh",
+    "dry-run:tournament-server": "./scripts/dry-run/run-tournament-server.sh",
+    "loadtest": "node scripts/loadtest.mjs"
+  },
+  "dependencies": {
+    "@coinbase/wallet-sdk": "^4.3.7",
+    "@tanstack/react-query": "^5.101.4",
+    "@walletconnect/ethereum-provider": "^2.23.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.1",
+    "viem": "^2.55.4",
+    "wagmi": "^3.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "playwright": "^1.61.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1"
+  }
+}

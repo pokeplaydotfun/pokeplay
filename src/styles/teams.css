@@ -1,0 +1,1084 @@
+/* ==================================================================
+   Team builder
+   Scoped under .teams so nothing here can leak into other pages.
+   ================================================================== */
+
+.teams .sprite,
+.teams .tb-hero__art {
+  /* Official sprites are pixel art — never let the browser smooth them. */
+  image-rendering: pixelated;
+}
+
+.teams :focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------- shared bits ---------- */
+
+.tb-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--white);
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.tb-input::placeholder {
+  color: var(--faint);
+}
+
+.tb-input:focus {
+  outline: none;
+  border-color: #cfc8ba;
+}
+
+.tb-note {
+  color: var(--faint);
+  font-size: 0.85rem;
+  margin-top: 10px;
+}
+
+.tb-note--pad {
+  padding: 22px 2px;
+}
+
+.tb-note--inline {
+  margin-top: 0;
+}
+
+.tb-count {
+  font-size: 0.78rem;
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.tb-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--red);
+  padding: 4px 2px;
+}
+
+.tb-panel {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  min-width: 0;
+}
+
+.tb-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.tb-panel__head--sub {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.tb-panel__head h3 {
+  font-size: 1.02rem;
+}
+
+/* ---------- roster strip ---------- */
+
+.tb-roster {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.tb-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px 12px;
+  min-height: 148px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: center;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.tb-slot:hover {
+  border-color: #d6d0c4;
+}
+
+.tb-slot--on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.tb-slot--empty {
+  border-style: dashed;
+  background: var(--panel);
+  justify-content: center;
+}
+
+.tb-slot__n {
+  position: absolute;
+  top: 7px;
+  left: 9px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+}
+
+.tb-slot__plus {
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--faint);
+  font-weight: 300;
+}
+
+.tb-slot__name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.86rem;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.tb-slot__name--muted {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.tb-slot__types {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tb-slot__moves {
+  font-size: 0.68rem;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+/* ---------- two-column body ---------- */
+
+.tb-cols {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 16px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+/* ---------- species grid ---------- */
+
+.tb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.teams .chip {
+  padding: 6px 12px;
+  font-size: 0.76rem;
+}
+
+.chip--type {
+  text-transform: capitalize;
+}
+
+.tb-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 14px 0 12px;
+}
+
+.tb-sort__btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.tb-sort__btn:hover {
+  background: var(--panel);
+}
+
+.tb-sort__btn--on {
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+  max-height: 620px;
+  overflow-y: auto;
+  padding: 2px;
+  /* Keeps 151 cards cheap to scroll. */
+  contain: content;
+}
+
+.sp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  text-align: center;
+  transition: border-color 0.14s ease;
+}
+
+.sp:hover:not(:disabled) {
+  border-color: #d6d0c4;
+}
+
+.sp--on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.sp--off {
+  opacity: 0.42;
+  cursor: not-allowed;
+  background: var(--panel);
+}
+
+.sp__dex {
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--faint);
+}
+
+.sp__name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.sp__types {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 3px;
+}
+
+/* ---------- detail panel ---------- */
+
+.tb-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.tb-hero__art {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  background: var(--panel);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.tb-hero__dex {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+}
+
+.tb-hero__name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 2px 0 8px;
+}
+
+.tb-hero__types {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---------- stat bars ---------- */
+
+.tb-stats {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tb-stat {
+  display: grid;
+  grid-template-columns: 34px 34px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.tb-stat__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.tb-stat__value {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tb-stat__track {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.tb-stat__bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ink);
+}
+
+.tb-stat--total {
+  margin-top: 4px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.tb-stat--total .tb-stat__value {
+  color: var(--red);
+}
+
+/* ---------- moves ---------- */
+
+.tb-moves {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mv {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  transition: border-color 0.14s ease;
+}
+
+.mv:hover:not(:disabled) {
+  border-color: #d6d0c4;
+}
+
+.mv--chosen {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--panel);
+}
+
+.mv__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.mv--add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-style: dashed;
+  color: var(--faint);
+  font-size: 0.87rem;
+  font-weight: 500;
+  padding: 14px 13px;
+}
+
+.mv--add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mv__plus {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.mv--taken {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mv__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mv__name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.mv__cat {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.mv--chosen .mv__cat {
+  background: var(--white);
+}
+
+.mv__cat--physical {
+  color: #a2451f;
+}
+.mv__cat--special {
+  color: #3f6ea8;
+}
+.mv__cat--status {
+  color: var(--faint);
+}
+
+.mv__meta {
+  display: flex;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 0.77rem;
+  color: var(--faint);
+}
+
+.mv__meta b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* What the move actually does, in words. Worth the room now that a Pokémon
+   can have hundreds of legal moves, most of which nobody has memorised. */
+.mv__text {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted);
+  text-align: left;
+  white-space: normal;
+}
+
+.mv__fx {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.mv__fx-tag {
+  font-size: 0.71rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.mv__taken-tag {
+  display: inline-block;
+  margin-top: 7px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.mv__remove {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  font-size: 0.8rem;
+}
+
+.mv__remove:hover {
+  background: var(--white);
+  color: var(--red);
+}
+
+/* ---------- move modal ---------- */
+
+.tb-movemodal {
+  max-width: 520px;
+  height: min(78vh, 680px);
+}
+
+.tb-movemodal__search {
+  padding: 12px 12px 0;
+  flex-shrink: 0;
+}
+
+.tb-movelist {
+  gap: 8px;
+}
+
+/* ---------- save bar ---------- */
+
+.tb-save {
+  margin-top: 16px;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 16px 20px;
+  align-items: end;
+}
+
+.tb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tb-save__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tb-problems {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.84rem;
+  color: var(--faint);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tb-problems--bare {
+  padding-left: 16px;
+  color: inherit;
+}
+
+.tb-server-errors {
+  grid-column: 1 / -1;
+}
+
+/* ---------- saved-team list ---------- */
+
+.tm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.tm {
+  padding: 20px;
+}
+
+.tm__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tm__name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+
+.tm__meta {
+  font-size: 0.78rem;
+  color: var(--faint);
+  margin-top: 3px;
+}
+
+.tm__party {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin: 14px 0 16px;
+  padding: 8px 4px;
+  background: var(--panel);
+  border-radius: 11px;
+}
+
+.tm__mon {
+  display: grid;
+  place-items: center;
+  min-height: 54px;
+  min-width: 0;
+}
+
+.tm__mon .sprite {
+  max-width: 100%;
+  height: auto;
+}
+
+.tm__actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.mini-btn--danger {
+  color: var(--red);
+  border-color: #f4c9c7;
+  background: var(--red-soft);
+}
+
+.mini-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ==================================================================
+   Responsive
+   ================================================================== */
+
+@media (max-width: 980px) {
+  .tb-cols {
+    grid-template-columns: 1fr;
+  }
+  .sp-grid {
+    max-height: 460px;
+  }
+}
+
+@media (max-width: 760px) {
+  .tb-roster {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .tb-save {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .tb-save__right {
+    justify-content: stretch;
+  }
+  .tb-save__right .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 460px) {
+  .tb-panel {
+    padding: 16px;
+  }
+  .tb-roster {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .tb-slot {
+    min-height: 132px;
+  }
+  .sp-grid {
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  }
+  .tb-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .tb-hero__art {
+    width: 108px;
+    height: 108px;
+  }
+  .tm-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- phones ---------- */
+
+@media (max-width: 620px) {
+  /* Wrapped, the 18 type filters take five rows and push the actual Pokémon
+     off screen. One scrollable row keeps the grid in view. */
+  .tb-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    /* Bleed to the panel edge so the row visibly continues. */
+    margin-inline: -15px;
+    padding-inline: 15px;
+    scrollbar-width: none;
+  }
+
+  .tb-chips::-webkit-scrollbar { display: none; }
+
+  .tb-chips .chip {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    min-height: 36px;
+  }
+
+  .tb-sort { flex-wrap: wrap; gap: 6px; }
+
+  /* Comfortable targets in the picker and move list. */
+  .sp__card { min-height: 132px; }
+  .tb-move,
+  .tb-moveslot { min-height: 48px; }
+}
+
+/* ---------- nature & ability ---------- */
+
+.tb-traits {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.tb-trait {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tb-trait__label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tb-trait__row {
+  display: flex;
+  gap: 8px;
+}
+
+.tb-select {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tb-select:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.tb-dice {
+  flex: 0 0 auto;
+  width: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  /* Centres the drawn die; it inherits this colour via currentColor. */
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.tb-dice:hover:not(:disabled) {
+  transform: rotate(-12deg);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.tb-dice:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tb-count .tb-link {
+  margin-left: 10px;
+}
+
+/* ---------- trait dropdown (nature / ability, with hover help) ---------- */
+
+.tsel {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.tsel__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 13px;
+  text-align: left;
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+
+.tsel__trigger:hover:not(:disabled) {
+  border-color: #d6d0c4;
+}
+
+.tsel--open .tsel__trigger {
+  border-color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.tsel__trigger:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.tsel__value {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tsel__value-label {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tsel__value-hint {
+  font-size: 11px;
+  color: var(--faint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tsel__value-placeholder {
+  color: var(--faint);
+}
+
+.tsel__caret {
+  width: 13px;
+  height: 13px;
+  color: var(--faint);
+  flex-shrink: 0;
+  transition: transform var(--slow);
+}
+
+.tsel--open .tsel__caret {
+  transform: rotate(180deg);
+}
+
+.tsel__panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: tsel-in 0.14s var(--ease);
+}
+
+@keyframes tsel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.tsel__list {
+  overflow-y: auto;
+  padding: 5px;
+  min-height: 0;
+}
+
+.tsel__opt {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: left;
+  color: var(--ink);
+  transition: background var(--fast);
+}
+
+.tsel__opt:hover,
+.tsel__opt:focus-visible {
+  background: var(--panel);
+  outline: none;
+}
+
+.tsel__opt--sel {
+  background: var(--red-soft);
+}
+
+.tsel__opt--sel:hover,
+.tsel__opt--sel:focus-visible {
+  background: var(--red-soft);
+}
+
+.tsel__opt-label {
+  font-weight: 600;
+}
+
+.tsel__opt-hint {
+  font-size: 11px;
+  color: var(--faint);
+  margin-left: auto;
+}
+
+.tsel__opt-check {
+  width: 13px;
+  height: 13px;
+  color: var(--red);
+  flex-shrink: 0;
+  /* Sits after the hint when both are present; pushes right when hint absent. */
+  margin-left: auto;
+}
+
+.tsel__opt-hint + .tsel__opt-check {
+  margin-left: 4px;
+}
+
+/* The always-there footer: whatever row you hover is explained here. */
+.tsel__desc {
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  flex-shrink: 0;
+}
+
+.tsel__desc-name {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.tsel__desc-text {
+  color: var(--muted);
+}
+
+.tsel__desc-flag {
+  color: var(--gold);
+}
+
+.tb-trait-hint {
+  margin: -4px 0 12px;
+  font-size: 11.5px;
+  color: var(--faint);
+}
+
+@media (max-width: 620px) {
+  .tb-traits {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tb-note__flag {
+  color: var(--gold);
+}
+
+/* A rule that blocks saving, not a suggestion. */
+.tb-note--bad {
+  color: var(--red);
+  font-weight: 600;
+}
+
+/* ---------- quick actions (random team) ---------- */
+.tb-quick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.tb-quick__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tb-quick__random {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 520px) {
+  .tb-quick { flex-direction: column; align-items: stretch; text-align: center; }
+  .tb-quick__random { width: 100%; }
+}

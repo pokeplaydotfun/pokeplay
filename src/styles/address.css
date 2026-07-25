@@ -1,0 +1,67 @@
+/*
+ * Copyable address. Reads as text until you hover or focus it, so it does not
+ * shout in a table full of other content, but it is always a real button.
+ */
+.addr {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 100%;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  line-height: inherit;
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+
+.addr__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.addr__icon {
+  flex: 0 0 auto;
+  font-size: 0.85em;
+  opacity: 0;
+  transition: opacity var(--fast);
+}
+
+.addr:hover,
+.addr:focus-visible {
+  background: var(--panel);
+}
+
+.addr:hover .addr__icon,
+.addr:focus-visible .addr__icon {
+  opacity: 0.65;
+}
+
+.addr--copied {
+  background: transparent;
+  color: #1a7f4b;
+}
+
+.addr--copied .addr__icon {
+  opacity: 1;
+}
+
+/* Touch screens have no hover, so the affordance must always be visible. */
+@media (hover: none) {
+  .addr__icon {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .addr,
+  .addr__icon {
+    transition: none;
+  }
+}

@@ -1,0 +1,190 @@
+/* ---------- leaderboard ---------- */
+
+.lb__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 26px;
+}
+
+.lb__stats > div {
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.lb__stats > div + div {
+  border-left: 1px solid var(--line);
+}
+
+@media (max-width: 560px) {
+  .lb__stats {
+    grid-template-columns: 1fr;
+  }
+  .lb__stats > div + div {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* The table scrolls inside its own box so a narrow screen never breaks the page. */
+.lb__scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  -webkit-overflow-scrolling: touch;
+}
+
+.lb {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+}
+
+.lb thead th {
+  text-align: left;
+  padding: 14px 18px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.lb tbody td {
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.lb tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/*
+ * Numeric columns.
+ *
+ * The header needs the same alignment as the values or the label floats away
+ * from the number underneath it. `.lb thead th` is more specific than a bare
+ * `.lb__num`, so the header rule has to be at least as specific to win.
+ */
+.lb__num,
+.lb thead th.lb__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lb__rank-h {
+  width: 62px;
+}
+
+.lb__rank {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--faint);
+  width: 62px;
+}
+
+/* Podium accents — the only colour in the table. */
+.lb__rank--gold {
+  color: var(--gold);
+}
+
+.lb__rank--silver {
+  color: #98a1ab;
+}
+
+.lb__rank--bronze {
+  color: #b1743f;
+}
+
+.lb__row--gold {
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.lb__row--silver {
+  box-shadow: inset 3px 0 0 #98a1ab;
+}
+
+.lb__row--bronze {
+  box-shadow: inset 3px 0 0 #b1743f;
+}
+
+.lb__row--me {
+  background: var(--panel);
+}
+
+/*
+ * Left as a normal table-cell on purpose. `display: flex` here took the cell
+ * out of table layout, so its bottom border drew only as wide as its contents
+ * and left a short line hanging under each name.
+ */
+.lb__player {
+  vertical-align: middle;
+}
+
+.lb__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  margin-right: 10px;
+}
+
+.lb__addr {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.76rem;
+  color: var(--faint);
+}
+
+/* A player who has hidden their wallet: name only, marked with a quiet lock. */
+.lb__name--hidden::after {
+  content: '🔒';
+  font-size: 0.72em;
+  margin-left: 6px;
+  opacity: 0.5;
+}
+
+.lb__wins {
+  font-weight: 700;
+}
+
+.lb__rate {
+  font-weight: 600;
+}
+
+.lb__foot {
+  margin-top: 14px;
+  font-size: 0.83rem;
+  color: var(--faint);
+}
+
+/* Realised profit and loss. Neutral when nothing has settled. */
+.lb__pnl {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--faint);
+}
+
+.lb__pnl--up {
+  color: #1a7f4b;
+  font-weight: 600;
+}
+
+.lb__pnl--down {
+  color: var(--red);
+  font-weight: 600;
+}
+
+/*
+ * Wide headers (PLAYED, WIN RATE, P/L) look wrong right-aligned: a two-digit
+ * number sits under the last letters of the word rather than the word itself.
+ * Centre both so the value lands under its label.
+ */
+.lb__mid,
+.lb thead th.lb__mid {
+  text-align: center;
+}

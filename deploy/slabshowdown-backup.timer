@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly PokePlay database backup
+
+[Timer]
+OnCalendar=*-*-* 04:12:00
+# A missed run (box was off) fires on next boot — a backup you skipped is a gap.
+Persistent=true
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

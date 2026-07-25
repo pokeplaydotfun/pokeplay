@@ -1,0 +1,36 @@
+{
+  "name": "slab-showdown-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test": "tsx src/battle/engine.test.ts && tsx src/battle/engine2.test.ts && tsx src/battle/ai.test.ts && tsx src/battle/ai2.test.ts && tsx src/battle/traits.test.ts && tsx src/battle/traits2.test.ts && tsx src/leaderboard.test.mjs && tsx src/pnl.test.mjs && tsx src/bracket.test.mjs && tsx src/settle.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "rm -f /tmp/ss-e2e.db* && DB_PATH=/tmp/ss-e2e.db PORT=8099 tsx src/index.ts & sleep 3 && BASE=http://127.0.0.1:8099 tsx src/integration.test.ts; kill %1 2>/dev/null",
+    "test:queue": "rm -f /tmp/pp-queue.db* ; DB_PATH=/tmp/pp-queue.db PORT=8097 tsx src/index.ts & sleep 5 && BASE=http://127.0.0.1:8097 node src/queue.test.mjs; kill %1 2>/dev/null",
+    "test:username": "rm -f /tmp/pp-un.db* ; DB_PATH=/tmp/pp-un.db PORT=8094 tsx src/index.ts & sleep 6 && BASE=http://127.0.0.1:8094 node src/username.test.mjs; kill %1 2>/dev/null",
+    "test:security": "rm -f /tmp/pp-sec.db* ; DB_PATH=/tmp/pp-sec.db PORT=8092 ADMIN_ADDRESSES=0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF tsx src/index.ts & sleep 6 && BASE=http://127.0.0.1:8092 node src/security.test.mjs; kill %1 2>/dev/null",
+    "test:tournament": "rm -f /tmp/pp-tt.db* ; DB_PATH=/tmp/pp-tt.db PORT=8093 ADMIN_ADDRESSES=0x2b5ad5c4795c026514f8317c7a215e218dccd6cf tsx src/index.ts & sleep 6 && BASE=http://127.0.0.1:8093 node src/tournament.test.mjs; kill %1 2>/dev/null"
+  },
+  "dependencies": {
+    "@pkmn/data": "^0.10.11",
+    "@pkmn/dex": "^0.10.11",
+    "@pkmn/sim": "^0.10.11",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "tsx": "^4.23.1",
+    "viem": "^2.55.4",
+    "ws": "^8.21.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.1",
+    "@types/ws": "^8.18.1",
+    "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
+}

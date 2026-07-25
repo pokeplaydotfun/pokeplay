@@ -1,0 +1,45 @@
+# PokePlay — appended to the host's shared /etc/caddy/Caddyfile.
+# __DOMAIN__ is substituted by scripts/deploy.sh.
+#
+# Any other sites already served from this Caddyfile are untouched by this
+# block — it only adds a server for __DOMAIN__.
+
+__DOMAIN__, www.__DOMAIN__ {
+	encode gzip
+
+	# The battle websocket. Caddy upgrades transparently, but this needs its
+	# own handle so buffering never sits in front of a live connection.
+	handle /ws* {
+		reverse_proxy 127.0.0.1:8090 {
+			flush_interval -1
+		}
+	}
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8090 {
+			# A deploy restarts the backend for a couple of seconds. Without
+			# this, every in-flight request in that window fails and the page
+			# shows "Failed to fetch". Hold the request and retry instead.
+			lb_try_duration 8s
+			lb_try_interval 250ms
+		}
+	}
+
+	# Static frontend, with SPA fallback so /play/:roomId resolves on a
+	# hard refresh instead of 404ing.
+	handle {
+		root * /srv/pokeplay/dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		# Force HTTPS on every future visit. Without this, the first request to
+		# http:// can be intercepted before the redirect — unacceptable once the
+		# site handles wagers. 2 years, subdomains, HSTS-preload eligible.
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+	}
+}

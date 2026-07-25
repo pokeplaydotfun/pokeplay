@@ -1,0 +1,12 @@
+[Unit]
+Description=PokePlay database backup (SQLite online snapshot, verified + gzipped)
+After=network.target
+
+[Service]
+Type=oneshot
+User=pokeplay
+Group=pokeplay
+Environment=DB_PATH=/var/lib/slabshowdown/app.db
+Environment=BACKUP_DIR=/var/backups/slabshowdown
+Environment=HOME=/var/lib/slabshowdown
+ExecStart=/usr/bin/node /srv/pokeplay/deploy/backup.mjs --keep 14

@@ -1,0 +1,394 @@
+/* ---------- headline stat band ---------- */
+
+.profile__hero {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.profile__tile {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  transition: transform var(--fast), box-shadow var(--fast);
+}
+
+.profile__tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.profile__tile-value {
+  font-family: var(--display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile__tile-value--up {
+  color: #226b3a;
+}
+
+.profile__tile-value--down {
+  color: var(--red);
+}
+
+.profile__tile-label {
+  margin-top: 7px;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+@media (max-width: 900px) {
+  .profile__hero {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .profile__hero {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .profile__tile {
+    padding: 14px;
+  }
+  .profile__tile-value {
+    font-size: 1.35rem;
+  }
+}
+
+.profile__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.profile__col {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.profile__panel {
+  padding: 22px 24px;
+}
+
+.profile__panelhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profile__h3 {
+  font-family: var(--display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+
+.profile__panelhead .profile__h3 {
+  margin-bottom: 0;
+}
+
+.profile__panelhead + * {
+  margin-top: 14px;
+}
+
+.profile__hint {
+  font-size: 0.83rem;
+  color: var(--faint);
+  margin-top: 10px;
+}
+
+.profile__muted {
+  color: var(--faint);
+  font-size: 0.82rem;
+}
+
+/* ---------- name ---------- */
+
+.profile__namerow {
+  display: flex;
+  gap: 10px;
+}
+
+/* The username is claimed once and permanent, so it is shown read-only rather
+   than in an editable field that can be typed into but never saved. */
+.profile__nameval {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--ink);
+  padding: 4px 0 2px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  font: inherit;
+  font-size: 0.94rem;
+  color: var(--ink);
+  transition: border-color var(--fast), box-shadow var(--fast);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.07);
+}
+
+/* ---------- address ---------- */
+
+.profile__addr {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.profile__addr code {
+  display: block;
+  margin-top: 7px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.profile__addr-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ---------- record ---------- */
+
+.profile__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.profile__stat {
+  font-family: var(--display);
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.profile__statlabel {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-top: 5px;
+}
+
+/* ---------- lists ---------- */
+
+.profile__teams,
+.profile__matches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.profile__teams li,
+.profile__matches li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+
+.profile__teams li:last-child,
+.profile__matches li:last-child {
+  border-bottom: none;
+}
+
+.profile__teams li > span:first-child {
+  flex: 1;
+  font-weight: 600;
+}
+
+.profile__opp {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.pill {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.pill--win { background: #e4f4e8; color: #226b3a; }
+.pill--loss { background: var(--red-soft); color: #97201f; }
+.pill--draw { background: var(--panel); color: var(--muted); }
+
+/* ---------- privacy toggle ---------- */
+
+.profile__privacy {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+}
+
+.switch:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.switch__track {
+  flex-shrink: 0;
+  position: relative;
+  width: 42px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background var(--slow);
+}
+
+.switch--on .switch__track {
+  background: #226b3a;
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--slow);
+}
+
+.switch--on .switch__thumb {
+  transform: translateX(18px);
+}
+
+.switch__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.switch__label {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.switch__desc {
+  font-size: 0.8rem;
+  color: var(--faint);
+  line-height: 1.45;
+}
+
+/* ---------- battle history rows ---------- */
+
+.match {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.match__opp {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match__name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.match__practice,
+.match__hidden {
+  font-size: 0.85rem;
+  color: var(--faint);
+}
+
+.match__hidden::before {
+  content: '🔒 ';
+  font-size: 0.75em;
+}
+
+.match__stake {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.match__free {
+  color: var(--faint);
+}
+
+.match__net {
+  font-weight: 600;
+}
+
+.match__net--up { color: #226b3a; }
+.match__net--down { color: var(--red); }
+.match__net--flat { color: var(--muted); }
+
+.match__date {
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .profile__grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  /* Stake and date fall away first on a narrow row; result + opponent + replay
+     stay, which is the minimum that still reads as a match. */
+  .match { grid-template-columns: auto 1fr auto; gap: 10px; }
+  .match__stake, .match__date { display: none; }
+}
+
+@media (max-width: 480px) {
+  .profile__stats { grid-template-columns: repeat(2, 1fr); gap: 16px 10px; }
+  .profile__namerow { flex-direction: column; }
+}

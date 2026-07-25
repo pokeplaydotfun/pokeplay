@@ -1,0 +1,48 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Secrets — the arbiter/deployer key lives in a server/.env in production and
+# must never be committed. Keep .env.example (the template) tracked.
+.env
+.env.*
+!.env.example
+
+# Local deploy config: the production host and the other sites on it. Kept out
+# of the repo so a public checkout never names the box. Template is tracked.
+scripts/deploy.env
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+scripts/dry-run/shots/
+
+# Runtime database (lives outside the deploy tree in production)
+server/data/
+
+# Foundry build output
+contracts/out/
+contracts/cache/
+
+# PokeAPI fetch cache used only by scripts/build-pokedex.mjs
+data/.cache.json
+
+# Internal session handoff notes — not for the public repo.
+SESSION-*.md

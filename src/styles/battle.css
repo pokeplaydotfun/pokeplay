@@ -1,0 +1,526 @@
+/* ------------------------------------------------------------------ *
+ * Battle console — the look of the play.pokeplay.fun battle screen:    *
+ * a "<You> VS <opponent>" banner, a dark side log, and a grass arena   *
+ * with floating HP boxes and a gold command menu overlaid on it.       *
+ * The whole thing is a self-contained dark console that sits on the    *
+ * (cream) site page, so it keeps its own colours regardless of theme.  *
+ * ------------------------------------------------------------------ */
+
+/* Type accent colours, used for the coloured edge of move buttons. */
+:root {
+  --type-normal: #9099a1; --type-fire: #ff6b3d; --type-water: #4d90d5;
+  --type-electric: #f3d23b; --type-grass: #63bb5b; --type-ice: #74cec0;
+  --type-fighting: #ce4069; --type-poison: #ab6ac8; --type-ground: #d97746;
+  --type-flying: #8fa9de; --type-psychic: #f97176; --type-bug: #90c12c;
+  --type-rock: #c7b78b; --type-ghost: #5269ac; --type-dragon: #0b6dc3;
+  --type-dark: #5a5366; --type-steel: #5a8ea1; --type-fairy: #ec8fe6;
+}
+
+.bt-page { padding-top: 20px; padding-bottom: 56px; }
+
+.bt-console {
+  max-width: 1240px;
+  margin: 0 auto;
+  background: #10131b;
+  border: 1px solid #232838;
+  border-radius: 16px;
+  padding: 14px;
+  color: #fff;
+  font-family: system-ui, -apple-system, sans-serif;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+/* ---- top bar: stake title + turn clock ---- */
+.bt-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 6px 12px;
+}
+.bt-topbar__eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8a93a8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bt-topbar__eyebrow a { color: #b9c2d6; }
+.bt-topbar__title {
+  font-weight: 700;
+  font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+  letter-spacing: -0.01em;
+  margin-top: 3px;
+  color: #fff;
+}
+
+.bt-frame { display: flex; flex-direction: column; }
+
+/* ---- "<player> VS <foe>" banner (VS.png: teal left / red right + emblem) ---- */
+.bt-vs {
+  position: relative;
+  height: 44px;
+  background: url("/ui/VS.png") center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+  z-index: 1;
+}
+.bt-vs-name {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 800;
+  font-size: 17px;
+  color: #fff;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.55);
+  max-width: 38%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bt-vs-name.me { left: 22px; }
+.bt-vs-name.foe { right: 22px; text-align: right; }
+
+/* ---- log panel (left) + arena window (right) ---- */
+.bt-main {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  height: 388px; /* stage 380 + window top/bottom border */
+}
+
+.bt-log {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 11, 17, 0.92);
+  border: 2px solid #2a2f3a;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  color: #fff;
+}
+.bt-log-lines {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.bt-log-lines::-webkit-scrollbar { width: 6px; }
+.bt-log-lines::-webkit-scrollbar-thumb { background: #33394a; border-radius: 3px; }
+/* Attributed by actor: you = teal / left, opponent = red / right (matching the
+   VS banner), neutral effects = centred & muted — so who did what is obvious. */
+.bt-log-line { color: #e7ecf5; max-width: 92%; padding: 2px 9px; border-radius: 7px; }
+.bt-log-line.me {
+  align-self: flex-start; text-align: left; color: #d6f6f3;
+  border-left: 3px solid #38c9c1; background: rgba(56, 201, 193, 0.12);
+}
+.bt-log-line.foe {
+  align-self: flex-end; text-align: right; color: #ffe0dc;
+  border-right: 3px solid #f0655a; background: rgba(240, 101, 90, 0.12);
+}
+.bt-log-line:not(.me):not(.foe) {
+  align-self: center; text-align: center; color: #aab2c2; font-style: italic;
+}
+.bt-log-faint { align-self: center; color: #6b7488; font-style: italic; }
+.bt-log-prompt {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #2a2f3a;
+  min-height: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  transition: color 0.15s, border-color 0.15s;
+}
+/* The live narration line takes the actor's colour + a matching edge — the same
+   teal (you) / red (opponent) split the log uses — so the current move reads at
+   a glance without waiting for it to scroll into the log above. */
+.bt-log-prompt.p-me {
+  color: #8ff0e8;
+  border-left: 3px solid #38c9c1;
+  padding-left: 9px;
+  margin-left: -12px;
+}
+.bt-log-prompt.p-foe {
+  color: #ffb0a8;
+  border-left: 3px solid #f0655a;
+  padding-left: 9px;
+  margin-left: -12px;
+}
+.bt-log-foot {
+  margin-top: 8px;
+  font-size: 0.66rem;
+  color: #5c657a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+}
+
+/* ---- the arena window ---- */
+.bt-window {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 4px solid #f3f1ea;
+  box-sizing: border-box;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+}
+.bt-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: url("/ui/battle-grass.png") center / cover no-repeat;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+
+/* weather tint + chip over the grass */
+.bt-stage--sun { box-shadow: inset 0 90px 120px -60px rgba(255, 190, 90, 0.5); }
+.bt-stage--rain { box-shadow: inset 0 90px 120px -60px rgba(90, 150, 255, 0.5); }
+.bt-stage--sand { box-shadow: inset 0 90px 120px -60px rgba(210, 175, 110, 0.55); }
+.bt-stage--hail { box-shadow: inset 0 90px 120px -60px rgba(170, 215, 255, 0.55); }
+.bt-weather {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(8, 11, 17, 0.66);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #eef;
+}
+
+/* turn badge + clock, top-right of the arena */
+.bt-turn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+.bt-turn-label {
+  width: 58px;
+  height: 25px;
+  background: url("/ui/TurnBar2.png") center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+.bt-turn-n {
+  min-width: 25px;
+  height: 25px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #15171c;
+  border: 1px solid #000;
+  border-radius: 3px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* combatants */
+.bt-foe, .bt-me { position: absolute; }
+.bt-foe { right: 9%; top: 8%; text-align: center; }
+.bt-me { left: 40%; bottom: 20%; text-align: center; } /* clears the bottom-left menu */
+.bt-sprite {
+  width: 150px; height: 150px; object-fit: contain;
+  image-rendering: pixelated; transition: transform .2s;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.28));
+}
+.bt-me .bt-sprite { width: 168px; height: 168px; }
+
+.bt-foe.enter { animation: bt-enter-r .55s ease both; }
+.bt-me.enter { animation: bt-enter-l .55s ease both; }
+@keyframes bt-enter-r { from { transform: translateX(90px); opacity: 0; } }
+@keyframes bt-enter-l { from { transform: translateX(-90px); opacity: 0; } }
+.bt-sprite.fainted { animation: bt-faint .55s ease forwards; }
+@keyframes bt-faint { to { transform: translateY(60px); opacity: 0; } }
+
+.bt-box-wrap { position: absolute; z-index: 5; }
+.bt-foe .bt-box-wrap { left: -130px; top: -14px; }
+.bt-me .bt-box-wrap { right: -156px; bottom: -44px; }
+
+/* authentic HP box: hpbar.png frame ("HP" baked) + coloured fill inset */
+.bt-box { width: 220px; color: #fff; text-align: left; }
+.bt-boxtop {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 0 4px 2px; text-shadow: 0 1px 2px #000;
+}
+.bt-bname { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 5px; }
+.bt-blv { font-size: 12px; opacity: 0.9; }
+.bt-hpbar {
+  position: relative;
+  width: 220px; height: 17px;
+  background: url("/ui/hpbar.png") 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+.bt-hpfill {
+  position: absolute; left: 12.4%; top: 28%; height: 44%;
+  border-radius: 1px; transition: width 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.bt-hpfill.hi { background: #5cd35c; }
+.bt-hpfill.mid { background: #f3d23b; }
+.bt-hpfill.lo { background: #e0533d; }
+.bt-hpnum { text-align: right; font-size: 12px; padding: 2px 4px 0; text-shadow: 0 1px 2px #000; font-variant-numeric: tabular-nums; }
+
+/* team pokéball row */
+.bt-balls { display: flex; gap: 2px; padding: 3px 4px; }
+.bt-balls img { width: 15px; height: 15px; image-rendering: pixelated; }
+
+/* inline status tag inside the HP box */
+.bt-status {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 3px;
+  padding: 0 4px;
+  line-height: 1.5;
+}
+.bt-status.brn { background: #e4593b; }
+.bt-status.par { background: #c9a70f; }
+.bt-status.psn, .bt-status.tox { background: #9a5ac0; }
+.bt-status.slp { background: #7d8593; }
+.bt-status.frz { background: #58b6d4; }
+
+/* persistent stat-stage chips under the HP box (green +, red −) */
+.bt-stats { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; width: 220px; }
+.bt-stat {
+  font-size: 11px; font-weight: 800; line-height: 1; padding: 2px 5px; border-radius: 4px;
+  color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6); white-space: nowrap;
+}
+.bt-stat.up { background: rgba(56, 201, 120, 0.92); border: 1px solid rgba(255, 255, 255, 0.25); }
+.bt-stat.down { background: rgba(224, 83, 61, 0.92); border: 1px solid rgba(255, 255, 255, 0.25); }
+
+/* ---- the command / move menu, overlaid on the arena's bottom-left ---- */
+.bt-menu-wrap {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  width: 48%;
+  z-index: 6;
+}
+.bt-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  grid-auto-rows: 40px;
+}
+/* gold button (Btn.png) for commands + moves */
+.bt-cmd, .bt-move {
+  border: 0;
+  background: url("/ui/Btn.png") 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
+  color: #3a2600;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.bt-cmd:hover:not(:disabled), .bt-move:hover:not(:disabled) { filter: brightness(1.08); }
+.bt-cmd:active:not(:disabled), .bt-move:active:not(:disabled) { filter: brightness(0.92); }
+.bt-cmd:disabled, .bt-move:disabled { filter: grayscale(0.5) brightness(0.85); opacity: 0.7; cursor: not-allowed; }
+
+/* moves: 2×2 grid + Back to their right */
+.bt-menu.moves { display: flex; flex-direction: column; gap: 7px; }
+.bt-moverow { display: flex; align-items: flex-end; gap: 7px; }
+.bt-movegrid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 48px; gap: 7px; }
+.bt-moverow .bt-cmd.back { flex: 0 0 auto; width: 92px; height: 48px; }
+.bt-move {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4px 12px;
+  font-size: 14px;
+  border-bottom: 3px solid transparent; /* type colour, set inline */
+  overflow: hidden;
+}
+.bt-move small { display: flex; gap: 8px; opacity: 0.9; font-weight: 600; font-size: 11px; }
+.bt-move small b { font-weight: 800; }
+.bt-eff {
+  position: absolute; right: 6px; bottom: 5px;
+  font-size: 11px; font-weight: 900; line-height: 1; padding: 1px 5px; border-radius: 5px;
+  color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.bt-eff.super { background: #3fae5a; }
+.bt-eff.resist { background: #d98a2b; }
+.bt-eff.neutral { background: rgba(72, 72, 84, 0.85); }
+.bt-eff.immune { background: #b13030; }
+
+/* switch list — a dark scrollable panel over the grass */
+.bt-menu.list {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 250px;
+  background: rgba(8, 11, 17, 0.78);
+  border: 1px solid #2a2f3a;
+  border-radius: 8px;
+  padding: 7px;
+  box-sizing: border-box;
+}
+.bt-list {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  align-content: start;
+  max-height: 196px;
+}
+.bt-listitem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #222a3d;
+  border: 1px solid #39456b;
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  min-height: 34px;
+}
+.bt-listitem:hover:not(:disabled) { background: #2e3855; }
+.bt-listitem:disabled { opacity: 0.45; cursor: default; }
+.bt-listitem img { width: 26px; height: 26px; image-rendering: pixelated; flex: none; object-fit: contain; }
+.bt-listitem__body { flex: 1; min-width: 0; }
+.bt-listitem__name { font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.bt-listitem__hp { font-size: 11px; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.bt-listitem.dead .bt-listitem__name { text-decoration: line-through; opacity: 0.7; }
+.bt-cmd.wide { width: 100%; height: 32px; font-size: 14px; }
+
+/* while a turn animates, the menu steps back to three pulsing dots */
+.bt-idle {
+  display: flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 14px;
+  background: rgba(8, 11, 17, 0.6);
+  border: 1px solid #2a2f3a; border-radius: 8px;
+  width: max-content;
+}
+.bt-idle i { width: 8px; height: 8px; border-radius: 50%; background: #8791a6; animation: bt-dot 1s ease-in-out infinite; }
+.bt-idle i:nth-child(2) { animation-delay: .15s; }
+.bt-idle i:nth-child(3) { animation-delay: .3s; }
+@keyframes bt-dot { 0%, 100% { opacity: .3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+
+/* ---- turn clock ring (top bar) ---- */
+.bt-timer { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
+.bt-timer__ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.bt-timer__track, .bt-timer__value { fill: none; stroke-width: 3; }
+.bt-timer__track { stroke: #2a3040; }
+.bt-timer__value { stroke: #fff; stroke-linecap: round; transition: stroke-dasharray 0.25s linear; }
+.bt-timer--urgent .bt-timer__value { stroke: #f0655a; }
+.bt-timer__num { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; font-size: 1rem; color: #fff; }
+.bt-timer--urgent .bt-timer__num { color: #f0655a; }
+
+/* ---- overlays on the stage: opponent-gone / error / result ---- */
+.bt-overlay {
+  position: absolute;
+  left: 50%; top: 10px;
+  transform: translateX(-50%);
+  z-index: 7;
+  max-width: 92%;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+.bt-overlay--warn { background: #3a2f16; color: #ffe1a6; border: 1px solid #6b5320; }
+.bt-overlay--error { background: #3a1b18; color: #ffc9c2; border: 1px solid #6b2b25; }
+
+.bt-result {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px;
+  background: rgba(8, 11, 17, 0.82);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+}
+.bt-result__title { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+.bt-result--win .bt-result__title { color: #7ee0a0; }
+.bt-result--loss .bt-result__title { color: #ff8478; }
+.bt-result--draw .bt-result__title { color: #e8d48a; }
+.bt-result__body { color: #cbd3e2; font-size: 0.92rem; max-width: 460px; }
+.bt-result__actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+.bt-verify { margin-top: 6px; font-size: 0.8rem; max-width: 460px; color: #aeb7c8; }
+.bt-verify summary { cursor: pointer; font-weight: 600; color: #cbd3e2; }
+.bt-verify p { margin-top: 8px; }
+.bt-verify__row { display: flex; gap: 10px; margin-top: 8px; align-items: baseline; text-align: left; }
+.bt-verify__row span { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: #7a8296; flex-shrink: 0; width: 92px; }
+.bt-verify__row code { font-size: 0.68rem; word-break: break-all; color: #9aa3b6; }
+
+/* out-of-PP note that floats above the move grid */
+.bt-ppwarn {
+  grid-column: 1 / -1;
+  background: rgba(58, 47, 22, 0.9);
+  border: 1px solid #6b5320;
+  color: #ffe1a6;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ */
+/* responsive                                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .bt-main { flex-direction: column; height: auto; }
+  .bt-log { flex: 0 0 auto; order: 2; height: 150px; border-top: none; }
+  .bt-window { order: 1; }
+  .bt-stage { height: 340px; }
+  /* the log lines list is short on mobile — keep newest visible */
+  .bt-log-lines { font-size: 13px; }
+}
+
+@media (max-width: 620px) {
+  .bt-console { padding: 10px; border-radius: 12px; }
+  .bt-topbar { padding-bottom: 8px; }
+  .bt-vs-name { font-size: 15px; }
+  .bt-stage { height: 300px; }
+  .bt-sprite { width: 112px; height: 112px; }
+  .bt-me .bt-sprite { width: 124px; height: 124px; }
+  .bt-foe { right: 6%; top: 6%; }
+  .bt-me { left: 34%; bottom: 22%; }
+  /* shrink the floating HP boxes so they don't run off the arena */
+  .bt-box, .bt-hpbar, .bt-stats { width: 168px; }
+  .bt-foe .bt-box-wrap { left: -96px; top: -6px; }
+  .bt-me .bt-box-wrap { right: -110px; bottom: -40px; }
+  .bt-menu-wrap { width: 62%; }
+  .bt-move { font-size: 12px; padding: 3px 9px; }
+  .bt-movegrid { grid-auto-rows: 42px; }
+  .bt-moverow .bt-cmd.back { width: 64px; height: 42px; font-size: 12px; }
+  .bt-timer { width: 44px; height: 44px; }
+}
+
+@media (max-width: 420px) {
+  .bt-box, .bt-hpbar, .bt-stats { width: 138px; }
+  .bt-foe .bt-box-wrap { left: -78px; }
+  .bt-me .bt-box-wrap { right: -92px; }
+  .bt-menu-wrap { width: 72%; }
+}

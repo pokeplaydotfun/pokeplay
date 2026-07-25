@@ -1,0 +1,146 @@
+/*
+ * Token page.
+ *
+ * Centred to match the rest of the site. There is deliberately no stats strip
+ * while the token does not exist: an empty shell of dashes labelled "Holders"
+ * looks broken and tells nobody anything.
+ */
+
+/* ---- contract address: a small, self-contained pill ---- */
+
+.tk__ca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* fit-content + auto margins centres the pill without a wrapper. */
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.tk__ca-label {
+  color: var(--faint);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tk__ca-value {
+  font-size: 13px;
+}
+
+.tk__ca-tba {
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+
+.tk__ca-explorer {
+  padding-left: 8px;
+  margin-left: 2px;
+  border-left: 1px solid var(--line);
+  font-family: var(--body);
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tk__ca-explorer:hover { color: var(--ink); }
+
+/* ---- blocks ---- */
+
+.tk__block {
+  max-width: 860px;
+  margin: 0 auto 44px;
+}
+
+.tk__block--tight {
+  margin-bottom: 34px;
+}
+
+.tk__block-head {
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+.tk__block-head h3 {
+  margin: 6px 0 12px;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  letter-spacing: -0.015em;
+}
+
+.tk__block-head p {
+  margin: 0 auto;
+  max-width: 56ch;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+/* ---- the three steps ---- */
+
+.tk__plan {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.tk__plan-step {
+  padding: 22px 20px;
+  text-align: center;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.tk__plan-n {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-family: var(--display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+}
+
+.tk__plan-step h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.tk__plan-step p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ---- fine print ---- */
+
+.tk__fine {
+  max-width: 62ch;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--faint);
+}
+
+@media (max-width: 760px) {
+  .tk__plan {
+    grid-template-columns: 1fr;
+  }
+}

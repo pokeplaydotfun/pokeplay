@@ -1,0 +1,178 @@
+.replay .arena {
+  min-height: 260px;
+}
+
+/* A player who hid their wallet: their name, never an address. */
+.replay__hidden {
+  color: var(--faint);
+  font-style: italic;
+}
+
+/* ---------- transport bar ---------- */
+
+.rp__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 11px 14px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.rp__btn {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  font-size: 0.9rem;
+  transition: border-color var(--fast), background var(--fast);
+}
+
+.rp__btn:hover { border-color: #d6d0c4; background: var(--panel); }
+
+.rp__btn--primary {
+  background: var(--ink);
+  color: var(--white);
+  border-color: var(--ink);
+}
+
+.rp__btn--primary:hover { background: #2a2a2a; border-color: #2a2a2a; }
+
+.rp__scrub {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  cursor: pointer;
+}
+
+.rp__scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--white);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.rp__scrub::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.rp__count {
+  font-size: 0.78rem;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rp__speeds {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.rp__speed {
+  padding: 5px 8px;
+  border-radius: 7px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--faint);
+  transition: background var(--fast), color var(--fast);
+}
+
+.rp__speed:hover { background: var(--panel); }
+.rp__speed--on { background: var(--ink); color: var(--white); }
+
+/* ---------- bottom ---------- */
+
+.rp__bottom {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.rp__verify {
+  padding: 18px 20px;
+}
+
+.rp__checks {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+
+.rp__checks li {
+  display: flex;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.rp__checks .ok { color: #226b3a; }
+.rp__checks .bad { color: #97201f; }
+
+.rp__note {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.rp__hashes {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.rp__hashes span {
+  display: block;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.rp__hashes code {
+  font-size: 0.7rem;
+  color: var(--muted);
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (max-width: 900px) {
+  .rp__bottom { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .rp__bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+  }
+  /* The scrubber gets its own row so the buttons keep real tap targets. */
+  .rp__scrub { order: 10; flex-basis: 100%; }
+  .rp__count { order: 5; margin-left: auto; }
+  .rp__btn { width: 42px; height: 42px; }
+  .rp__speed { padding: 7px 9px; }
+}

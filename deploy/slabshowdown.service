@@ -1,0 +1,43 @@
+[Unit]
+Description=PokePlay battle server
+After=network.target
+
+[Service]
+Type=simple
+# Runs as an unprivileged, dedicated user — a compromise of this Node process
+# is contained to /srv/pokeplay and cannot touch the rest of the box or the
+# neighbouring services.
+User=pokeplay
+Group=pokeplay
+WorkingDirectory=/srv/pokeplay/server
+EnvironmentFile=/srv/pokeplay/server/.env
+Environment=HOME=/var/lib/slabshowdown
+# Direct binary, not npx — tsx is an installed dependency, so nothing is
+# fetched from the network at startup.
+ExecStart=/srv/pokeplay/server/node_modules/.bin/tsx src/index.ts
+Restart=always
+RestartSec=3
+
+# The database lives outside the deploy tree so a redeploy can never wipe it.
+# systemd creates and owns this for the service user.
+StateDirectory=slabshowdown
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=slabshowdown
+
+# Hardening.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+# MemoryDenyWriteExecute stays OFF — Node's JIT needs writable+executable pages.
+
+[Install]
+WantedBy=multi-user.target

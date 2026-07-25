@@ -1,0 +1,12 @@
+[Unit]
+Description=PokePlay watchdog — probes /api/health and alerts
+After=network-online.target
+
+[Service]
+Type=oneshot
+# HEALTH_TOKEN and ALERT_WEBHOOK live here, not in the unit file.
+EnvironmentFile=-/etc/slabshowdown-watchdog.env
+Environment=URL=https://pokeplay.fun
+ExecStart=/usr/bin/node /srv/pokeplay/deploy/watchdog.mjs
+# A failing check exits non-zero on purpose; that is a signal, not a crash.
+SuccessExitStatus=0 1

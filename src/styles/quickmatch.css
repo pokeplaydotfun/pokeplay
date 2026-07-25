@@ -1,0 +1,113 @@
+/* Quick match — sits above the practice panel in the lobby. */
+
+.qm {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.qm__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.qm__head h3 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.qm__tag {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.qm__body {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.qm__go {
+  width: 100%;
+}
+
+.qm__error {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.qm__waiting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+
+.qm__waiting-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.qm__waiting-text strong {
+  font-size: 14px;
+}
+
+.qm__waiting-text span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.qm__pulse {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: qm-pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes qm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qm__pulse { animation: none; }
+}
+
+.qm__cancel {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qm__cancel:disabled {
+  opacity: 0.55;
+  cursor: default;
+}

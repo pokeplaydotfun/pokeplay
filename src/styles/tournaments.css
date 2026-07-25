@@ -1,0 +1,300 @@
+/* Tournaments: the list, the sign-up card and the bracket. */
+
+.tn__admin {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+/* ---- list ---- */
+
+.tn__list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tn__row {
+  display: block;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--fast), transform var(--fast);
+}
+
+.tn__row:hover {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.tn__row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.tn__name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.tn__status {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+}
+
+.tn__status--open { background: #e8f5ee; color: #1a7f4b; }
+.tn__status--running { background: var(--red-soft); color: var(--red); }
+
+.tn__row-meta {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.tn__when { color: var(--faint); }
+
+/* ---- create ---- */
+
+.tn__create {
+  max-width: 420px;
+  margin: 0 auto 28px;
+  padding: 22px;
+}
+
+.tn__create h3 {
+  margin: 0 0 14px;
+  font-family: var(--display);
+  font-size: 1.1rem;
+}
+
+.tn__label {
+  display: block;
+  margin: 12px 0 5px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.tn__input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--cream);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.tn__create-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.tn__create-actions .btn { flex: 1; }
+
+.tn__note {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.tn__error {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+/* ---- your position ---- */
+
+.tn__you {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 720px;
+  margin: 0 auto 24px;
+  padding: 18px 20px;
+}
+
+.tn__you strong { font-size: 15px; }
+
+.tn__you p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tn__join {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tn__join .tn__input { width: auto; min-width: 160px; }
+
+.tn__champion { font-size: 1.05rem; font-weight: 600; }
+
+/* ---- entrants ---- */
+
+.tn__entrants {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 22px;
+}
+
+.tn__entrants h3 {
+  margin: 0 0 12px;
+  font-family: var(--display);
+  font-size: 1.05rem;
+}
+
+.tn__entrant-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.tn__player { font-weight: 600; }
+
+/* ---- bracket ---- */
+
+.tn__bracket {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  /* Centre the bracket when it fits and scroll when it does not. `justify-content:
+     center` would do the first half and break the second — an overflowing flex
+     line centred that way puts its first round off the left edge, where it cannot
+     be scrolled back to. Sizing the line to its content centres it via the margin
+     instead, which overflows correctly. */
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.tn__round {
+  /* Never stretch: a two-player bracket is one match, and letting it grow turned
+     the final into a banner across the whole page. */
+  flex: 0 0 224px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tn__round-matches {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 12px;
+}
+
+.tn__round-title {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 4px;
+}
+
+.tn__match {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.tn__match--ready { border-color: var(--red); }
+.tn__match--playing { border-color: var(--gold); }
+
+.tn__side {
+  padding: 9px 11px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tn__side:last-of-type { border-bottom: 0; }
+
+.tn__side--empty { color: var(--faint); }
+
+/* Win and loss are told with the palette rather than a green nothing else on the
+   site uses: the winner keeps the card's white and gains an ink edge, the loser
+   drops back into the panel tone. */
+.tn__side--won {
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.tn__side--lost {
+  color: var(--faint);
+  background: var(--panel);
+}
+
+.tn__replay {
+  display: block;
+  padding: 6px 11px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  text-align: right;
+  background: var(--panel);
+  transition: color var(--fast), background var(--fast);
+}
+
+.tn__replay:hover {
+  color: var(--ink);
+  background: var(--white);
+}
+
+@media (max-width: 620px) {
+  .tn__you { flex-direction: column; align-items: stretch; }
+  .tn__round { flex: 0 0 196px; }
+}
+
+/* The shared claim/withdraw panel (prize, refund) lines up with the other
+   cards on this page rather than running the full width of the wrap. */
+.tn__claim {
+  max-width: 720px;
+  margin: 0 auto 24px;
+}
