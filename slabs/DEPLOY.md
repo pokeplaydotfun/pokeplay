@@ -16,14 +16,15 @@ real-money smoke test. I never handle those keys.
 
 Three wallets total. Every env var maps to exactly one of them:
 
-**EVM #1 — COLD (owner + treasury).** Offline; never signs at runtime, never deploys.
+**EVM #1 — COLD owner.** Offline; never signs at runtime, never deploys.
 - `OWNER_ADDRESS` — admin of all 4 contracts; holds the forceRefund escape hatch.
-- `TREASURY_ADDRESS` — receives the 2.5% marketplace fee (kept cold; sweep-safe).
 - I need: **its address only.**
 
-**EVM #2 — HOT worker.** The backend's runtime key; also deploys and can pause.
+**EVM #2 — HOT worker.** Everything else — same as the other project's worker/fee wallet.
 - `WORKER_ADDRESS` (= the Fulfiller caller + quote signer) — on-chain runtime role.
 - `GUARDIAN_ADDRESS` — automated pause-only role (same hot key so the monitor can halt).
+- `TREASURY_ADDRESS` — the 2.5% marketplace fee recipient (on the worker, per the other
+  project; sweep it to cold periodically).
 - `DEPLOYER_PRIVATE_KEY` — runs the deploy, then hands ownership to the cold owner and
   keeps only the worker role. Keeps the cold key offline through the whole deploy.
 - `WORKER_PRIVATE_KEY` (backend .env) — the SAME key; the worker signs quotes/fulfils.
@@ -33,9 +34,6 @@ Three wallets total. Every env var maps to exactly one of them:
 - `SOLANA_OPERATOR_ADDRESS` + `SOLANA_OPERATOR_SECRET_KEY` (backend .env) — signs the
   Solana side (pack opens, unwraps, transfers).
 - I need: **its address + secret key** (box `.env`), funded with the CC cards + some SOL.
-
-> Note: I put the treasury (fees) on the COLD wallet for safety. The other project ran
-> fees through the hot worker — say so and I'll flip `TREASURY_ADDRESS` to the worker.
 
 ## 1. Contracts (you deploy, once)
 Same pattern as the escrow/pool deploys. From `slabs/contracts`, deploy the four
