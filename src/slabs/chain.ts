@@ -168,9 +168,14 @@ export const CONTRACTS = {
    * and the wallet shows no balance at all.
    */
   usdg: (import.meta.env.VITE_USDG_ADDRESS ?? USDG_MAINNET) as `0x${string}`,
-  packSale: import.meta.env.VITE_PACK_SALE_ADDRESS as `0x${string}` | undefined,
-  mirror: import.meta.env.VITE_MIRROR_ADDRESS as `0x${string}` | undefined,
-  marketplace: import.meta.env.VITE_MARKETPLACE_ADDRESS as `0x${string}` | undefined,
+  // Deployed to Robinhood Chain mainnet 2026-07-27 (public addresses, safe as
+  // build-time defaults; an env var still overrides for a different deployment).
+  packSale: (import.meta.env.VITE_PACK_SALE_ADDRESS ??
+    "0x85a14ce3e218401bBC668c7448c31F618588c28F") as `0x${string}`,
+  mirror: (import.meta.env.VITE_MIRROR_ADDRESS ??
+    "0xb9494aD7406f57de7368cEA553352fda2959C5f4") as `0x${string}`,
+  marketplace: (import.meta.env.VITE_MARKETPLACE_ADDRESS ??
+    "0xE0c336C12b8cd924D7f05cd1F1488678AF004DF7") as `0x${string}`,
 };
 
 /** True only when we can actually transact. Everything else degrades to preview. */
