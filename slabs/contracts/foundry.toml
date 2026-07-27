@@ -25,3 +25,10 @@ fail_on_revert = false
 [profile.ci]
 fuzz = { runs = 4096 }
 invariant = { runs = 1024, depth = 64 }
+
+[rpc_endpoints]
+robinhood = "https://rpc.mainnet.chain.robinhood.com"
+robinhood_testnet = "https://rpc.testnet.chain.robinhood.com"
+
+[etherscan]
+robinhood = { key = "any", url = "https://robinhoodchain.blockscout.com/api", chain = 4663 }
