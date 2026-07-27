@@ -621,7 +621,7 @@
   width: 28px;
   height: 36px;
   border-radius: 5px;
-  background: linear-gradient(160deg, #23283a, #12151d);
+  background: linear-gradient(160deg, #f2ede3, #ffffff);
   border: 1px solid var(--line-bright);
   flex: none;
   position: relative;
@@ -641,7 +641,7 @@
 /* The active mark was tinted toward the old red brand (#2e1a1e); tinted green now. */
 .slabs-root .pill[data-active="true"] .pill-mark {
   border-color: rgba(var(--brand-rgb), 0.6);
-  background: linear-gradient(160deg, #16281f, #101a15);
+  background: linear-gradient(160deg, #f2ede3, #ffffff);
 }
 .slabs-root .pill[data-active="true"] .pill-mark::after { border-color: rgba(var(--brand-rgb), 0.6); }
 
@@ -854,7 +854,7 @@
 .slabs-root .rip-button:disabled { opacity: 0.42; cursor: not-allowed; box-shadow: none; filter: grayscale(0.4); }
 
 .slabs-root .rip-price {
-  background: rgba(0, 0, 0, 0.22);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
   border-radius: 7px;
   padding: 3px 9px;
   font-size: 14px;
@@ -1423,8 +1423,8 @@
 .slabs-root .card-art {
   height: 188px;
   background:
-    radial-gradient(120px 90px at 50% 40%, color-mix(in srgb, var(--tier) 26%, transparent), transparent 72%),
-    linear-gradient(160deg, #222733, #161a22);
+    radial-gradient(120px 90px at 50% 40%, color-mix(in srgb, var(--tier) 15%, transparent), transparent 72%),
+    linear-gradient(160deg, #f2ede3, #ffffff);
   display: grid;
   place-items: center;
   border-bottom: 1px solid var(--line);
@@ -1694,7 +1694,7 @@
   /* Covers the detail panel it sits in, so the answer is unmissable, while the card you
      just pulled stays visible above it. Matches the dark panel it sits on so the light
      heading reads — a cream fill here would swallow the now-light --text. */
-  background: rgba(20, 23, 30, 0.97);
+  background: rgba(255, 255, 255, 0.97);
   backdrop-filter: blur(4px);
   border-radius: 16px;
   padding: 22px 26px;
@@ -2625,7 +2625,7 @@
   place-items: center;
   border-radius: 50%;
   border: 1px solid var(--line-bright);
-  background: rgba(18, 21, 28, 0.72);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(8px);
   color: var(--text-dim);
   cursor: pointer;
@@ -2654,7 +2654,7 @@
   padding: 9px 16px 9px 18px;
   border-radius: 999px;
   border: 1px solid var(--line-bright);
-  background: rgba(18, 21, 28, 0.72);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(8px);
   color: var(--text-dim);
   font-size: 13px;
@@ -2670,7 +2670,7 @@
 .slabs-root .reveal-skip:hover {
   color: var(--text);
   border-color: var(--text-faint);
-  background: rgba(24, 28, 36, 0.88);
+  background: rgba(255, 255, 255, 1);
 }
 
 @keyframes skip-in {
@@ -2902,7 +2902,7 @@
   font-weight: 640;
   letter-spacing: 0.02em;
   color: var(--tier);
-  background: rgba(9, 11, 16, 0.72);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid color-mix(in srgb, var(--tier) 40%, transparent);
 }
 
@@ -3934,7 +3934,7 @@
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(20, 22, 26, 0.42);
+  background: var(--scrim);
 }
 .slabs-root .dep-picker {
   width: 100%;
