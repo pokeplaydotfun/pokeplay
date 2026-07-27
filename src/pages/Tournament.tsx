@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatEther } from 'viem'
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi'
-import { api, formatEth, type Team } from '../lib/api'
+import { api, formatEth, formatStart, formatUsd, usdCentsToEth, formatEthAmount, type Team } from '../lib/api'
 import { useSession } from '../lib/session'
 import { CURRENCY } from '../config'
 import { describeTxError, isUserRejection } from '../lib/escrow'
@@ -21,6 +21,13 @@ type MatchView = {
   p1: string | null
   p0Name: string | null
   p1Name: string | null
+  p0Hidden: boolean
+  p1Hidden: boolean
+  p0Filled: boolean
+  p1Filled: boolean
+  p0Won: boolean
+  p1Won: boolean
+  decided: boolean
   winner: string | null
   status: 'pending' | 'ready' | 'playing' | 'done'
   battleId: string | null
@@ -35,9 +42,17 @@ type View = {
   maxPlayers: number
   status: 'open' | 'running' | 'finished' | 'cancelled'
   startAt: number | null
+  // Masked for a hidden champion (null to everyone but the champion themselves).
   winner: string | null
   winnerName: string | null
-  players: { address: string; name: string | null; seed: number }[]
+  winnerHidden: boolean
+  // A champion exists at all — use this, not `winner`, for winner-exists logic.
+  hasWinner: boolean
+  // The real champion wallet, sent to the admin only, for the manual payout.
+  winnerPayout: string | null
+  prizeUsdCents: number | null
+  ethUsd: number | null
+  players: { address: string | null; name: string | null; hidden: boolean; seed: number }[]
   rounds: number
   matches: MatchView[]
   you: { entered: boolean; isAdmin: boolean; playableMatchId: number | null } | null
@@ -62,6 +77,99 @@ function untilLabel(unixSec: number): string {
   if (h > 0) return `in ${h}h ${m}m`
   if (m > 0) return `in ${m}m`
   return 'in <1m'
+}
+
+/**
+ * The scheduled-start card: a live countdown to the moment the bracket is drawn,
+ * plus the exact date and time. Ticks every second while it's still ahead.
+ */
+function StartClock({ startAt }: { startAt: number }) {
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000))
+  useEffect(() => {
+    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const left = Math.max(0, startAt - now)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const d = Math.floor(left / 86400)
+  const h = Math.floor((left % 86400) / 3600)
+  const m = Math.floor((left % 3600) / 60)
+  const s = left % 60
+  const countdown = left <= 0 ? 'Starting…' : d > 0 ? `${d}d ${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(h)}:${pad(m)}:${pad(s)}`
+  return (
+    <div className="tn__clock">
+      <div className="tn__clock-label">Starts in</div>
+      <div className="tn__clock-count">{countdown}</div>
+      <div className="tn__clock-when">🗓 {formatStart(startAt)}</div>
+    </div>
+  )
+}
+
+/**
+ * The prize-pool headline: the entry pot (exact ETH) plus any hand-paid prize
+ * (set in dollars, shown in ETH at the live rate). Shown in ETH with the ~$
+ * value underneath. Renders nothing for a free tournament with no added prize.
+ */
+function PrizePool({ view }: { view: View }) {
+  const fee = BigInt(view.entryFeeWei)
+  const players = view.players.length
+  const entryPotEth = Number(formatEther(fee * BigInt(players)))
+  const prizeUsd = (view.prizeUsdCents ?? 0) / 100
+  const rate = view.ethUsd
+  const prizeEth = view.prizeUsdCents ? usdCentsToEth(view.prizeUsdCents, rate) : 0
+  const hasEntry = fee > 0n && players > 0
+  const hasPrize = (view.prizeUsdCents ?? 0) > 0
+  if (!hasEntry && !hasPrize) return null
+
+  // A prize is a dollar figure, so folding it into ETH needs the live rate;
+  // without one we can't add it to the ETH total, so show it separately.
+  const rateMissing = hasPrize && rate == null
+  const approx = hasPrize && !rateMissing
+  const totalEth = entryPotEth + (prizeEth ?? 0)
+  const totalUsd = (rate ? entryPotEth * rate : 0) + prizeUsd
+  const ethLine = rateMissing
+    ? `${formatEthAmount(entryPotEth)} ${CURRENCY} + ${formatUsd(view.prizeUsdCents ?? 0)}`
+    : `${approx ? '≈ ' : ''}${formatEthAmount(totalEth)} ${CURRENCY}`
+
+  return (
+    <div className="tn__pool">
+      <div className="tn__pool-label">Prize pool</div>
+      <div className="tn__pool-eth">{ethLine}</div>
+      {rate != null && (
+        <div className="tn__pool-usd">~${Math.round(totalUsd).toLocaleString()}</div>
+      )}
+      {hasEntry && hasPrize && (
+        <div className="tn__pool-break">
+          {formatEthAmount(entryPotEth)} {CURRENCY} entry pot + {formatUsd(view.prizeUsdCents ?? 0)} added prize
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Admin-only: the champion's wallet + the dollar prize to send by hand. Only
+ * for a finished tournament that actually carries an added prize.
+ */
+function PrizePayout({ view }: { view: View }) {
+  if (view.status !== 'finished' || !view.winnerPayout || !(view.prizeUsdCents ?? 0)) return null
+  const prizeEth = usdCentsToEth(view.prizeUsdCents!, view.ethUsd)
+  return (
+    <div className="tn__payout">
+      <div className="tn__payout-head">💸 Pay the prize by hand</div>
+      <p className="tn__payout-body">
+        Send <strong>{formatUsd(view.prizeUsdCents!)}</strong>
+        {prizeEth != null ? ` (≈ ${formatEthAmount(prizeEth)} ${CURRENCY} now)` : ''} to the champion.
+        {BigInt(view.entryFeeWei) > 0n
+          ? ' The entry pot is settled on chain automatically — this added prize is the only part you pay yourself.'
+          : ' This is a free tournament, so this prize is the whole reward.'}
+      </p>
+      <div className="tn__payout-row">
+        <span>Winner{view.winnerName ? ` · ${view.winnerName}` : ''}</span>
+        <Address value={view.winnerPayout} />
+      </div>
+    </div>
+  )
 }
 
 export default function Tournament() {
@@ -271,7 +379,10 @@ export default function Tournament() {
   const extend = async (addSeconds: number) => {
     if (!view) return
     const fee = BigInt(view.entryFeeWei)
-    const newStart = Math.floor(Date.now() / 1000) + addSeconds
+    // Push the SCHEDULED start out — not "now + 24h", which would be earlier than
+    // a start that's days away and rejected by both the server and the pool.
+    const base = Math.max(Math.floor(Date.now() / 1000), view.startAt ?? 0)
+    const newStart = base + addSeconds
 
     setError(null)
     setBusy(true)
@@ -348,16 +459,35 @@ export default function Tournament() {
             {view.status === 'cancelled' && (
               <p className="lede">This tournament was cancelled.{fee > 0n ? ' Entrants can reclaim their entry fee below.' : ''}</p>
             )}
-            {view.status === 'finished' && view.winner && (
+            {view.status === 'finished' && view.hasWinner && (
               <p className="lede tn__champion">
-                🏆 {view.winnerName ?? ''}{' '}
-                {!view.winnerName && <Address value={view.winner} />} won it.
+                🏆{' '}
+                {view.winnerName ? (
+                  <>
+                    {view.winnerName}
+                    {view.winnerHidden && ' 🔒'}
+                  </>
+                ) : view.winner ? (
+                  <Address value={view.winner} />
+                ) : (
+                  'A hidden trainer 🔒'
+                )}{' '}
+                won it.
               </p>
             )}
           </div>
         </div>
 
         {error && <Banner kind="error">{error}</Banner>}
+
+        {/* ---- the scheduled-start countdown ---- */}
+        {view.status === 'open' && view.startAt != null && !startPassed && (
+          <StartClock startAt={view.startAt} />
+        )}
+
+        {/* ---- prize pool + (admin) the manual-payout details ---- */}
+        <PrizePool view={view} />
+        {you?.isAdmin && <PrizePayout view={view} />}
 
         {/* ---- prize, for the champion of a paid tournament ---- */}
         {view.status === 'finished' && view.onchainId && poolReady && (
@@ -411,9 +541,9 @@ export default function Tournament() {
                   <strong>You are signed up.</strong>
                   <p>
                     {signUpsClosed
-                      ? 'Sign-ups have closed — it starts any moment now.'
+                      ? 'It starts any moment now.'
                       : view.startAt != null
-                        ? 'It starts automatically when sign-ups close.'
+                        ? `It starts at its scheduled time — ${formatStart(view.startAt)}. The organiser can push it back, but it won’t start early.`
                         : 'The bracket is drawn when the organiser starts it.'}
                   </p>
                 </div>
@@ -502,7 +632,7 @@ export default function Tournament() {
         {fee > 0n && view.onchainId && poolReady && signedIn && !youAreChampion && (
           <RefundClaim
             onchainId={view.onchainId}
-            championed={view.status === 'finished' && view.winner !== null}
+            championed={view.status === 'finished' && view.hasWinner}
             refreshKey={`${view.status}:${you?.entered ?? false}:${poolEpoch}`}
           />
         )}
@@ -515,9 +645,17 @@ export default function Tournament() {
               <p className="tn__note">Nobody yet. Be first.</p>
             ) : (
               <ol className="tn__entrant-list">
-                {view.players.map((p) => (
-                  <li key={p.address}>
-                    {p.name ? <span className="tn__player">{p.name}</span> : <Address value={p.address} />}
+                {view.players.map((p, i) => (
+                  <li key={p.address || `hidden-${i}`}>
+                    {p.hidden ? (
+                      <span className="tn__player tn__player--hidden">{p.name ?? 'Hidden trainer'} 🔒</span>
+                    ) : p.name ? (
+                      <span className="tn__player">{p.name}</span>
+                    ) : p.address ? (
+                      <Address value={p.address} />
+                    ) : (
+                      <span className="tn__player">Unknown</span>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -536,8 +674,27 @@ export default function Tournament() {
                     .filter((m) => m.round === round)
                     .map((m) => (
                       <div className={`tn__match tn__match--${m.status}`} key={m.id}>
-                        <Side name={m.p0Name} address={m.p0} winner={m.winner} />
-                        <Side name={m.p1Name} address={m.p1} winner={m.winner} />
+                        <Side
+                          name={m.p0Name}
+                          address={m.p0}
+                          hidden={m.p0Hidden}
+                          filled={m.p0Filled}
+                          won={m.p0Won}
+                          decided={m.decided}
+                        />
+                        <Side
+                          name={m.p1Name}
+                          address={m.p1}
+                          hidden={m.p1Hidden}
+                          filled={m.p1Filled}
+                          won={m.p1Won}
+                          decided={m.decided}
+                        />
+                        {m.status === 'playing' && m.battleId && (
+                          <Link className="tn__replay tn__watch" to={`/watch/${m.battleId}`}>
+                            ● Watch live
+                          </Link>
+                        )}
                         {m.status === 'done' && m.battleId && (
                           <Link className="tn__replay" to={`/replay/${m.battleId}`}>
                             Replay
@@ -834,18 +991,31 @@ function PrizeClaim({
 function Side({
   name,
   address,
-  winner,
+  hidden,
+  filled,
+  won,
+  decided,
 }: {
   name: string | null
   address: string | null
-  winner: string | null
+  hidden: boolean
+  filled: boolean
+  won: boolean
+  decided: boolean
 }) {
-  if (!address) return <div className="tn__side tn__side--empty">—</div>
-  const won = winner === address
-  const lost = winner !== null && !won
+  if (!filled) return <div className="tn__side tn__side--empty">—</div>
+  const lost = decided && !won
   return (
     <div className={`tn__side${won ? ' tn__side--won' : ''}${lost ? ' tn__side--lost' : ''}`}>
-      {name ?? <Address value={address} />}
+      {hidden ? (
+        <span className="tn__side-hidden">{name ?? 'Hidden trainer'} 🔒</span>
+      ) : name ? (
+        name
+      ) : address ? (
+        <Address value={address} />
+      ) : (
+        '—'
+      )}
     </div>
   )
 }

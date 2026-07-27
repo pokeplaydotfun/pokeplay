@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "test": "tsx src/battle/engine.test.ts && tsx src/battle/engine2.test.ts && tsx src/battle/ai.test.ts && tsx src/battle/ai2.test.ts && tsx src/battle/traits.test.ts && tsx src/battle/traits2.test.ts && tsx src/leaderboard.test.mjs && tsx src/pnl.test.mjs && tsx src/bracket.test.mjs && tsx src/settle.test.mjs",
+    "test": "tsx src/battle/engine.test.ts && tsx src/battle/engine2.test.ts && tsx src/battle/ai.test.ts && tsx src/battle/ai2.test.ts && tsx src/battle/traits.test.ts && tsx src/battle/traits2.test.ts && tsx src/leaderboard.test.mjs && tsx src/pnl.test.mjs && tsx src/bracket.test.mjs && tsx src/settle.test.mjs && tsx src/replay.test.mjs",
     "typecheck": "tsc --noEmit",
     "test:e2e": "rm -f /tmp/ss-e2e.db* && DB_PATH=/tmp/ss-e2e.db PORT=8099 tsx src/index.ts & sleep 3 && BASE=http://127.0.0.1:8099 tsx src/integration.test.ts; kill %1 2>/dev/null",
     "test:queue": "rm -f /tmp/pp-queue.db* ; DB_PATH=/tmp/pp-queue.db PORT=8097 tsx src/index.ts & sleep 5 && BASE=http://127.0.0.1:8097 node src/queue.test.mjs; kill %1 2>/dev/null",

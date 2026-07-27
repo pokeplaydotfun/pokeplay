@@ -188,3 +188,97 @@
 .lb thead th.lb__mid {
   text-align: center;
 }
+
+/* ------------------------------------------------------------------ *
+ * Champions board — most tournament titles won, above the main table  *
+ * ------------------------------------------------------------------ */
+.champions {
+  margin: 0 0 26px;
+  padding: 20px 22px;
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(181, 135, 49, 0.10), transparent 55%),
+    var(--white);
+  border: 1px solid #ecdfc0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.champions__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.champions__trophy { font-size: 1.3rem; align-self: center; }
+.champions__head h3 {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.champions__sub {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.champions__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.champions__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--cream);
+  border: 1px solid var(--line);
+}
+.champions__item--gold { box-shadow: inset 3px 0 0 var(--gold); }
+.champions__item--silver { box-shadow: inset 3px 0 0 #98a1ab; }
+.champions__item--bronze { box-shadow: inset 3px 0 0 #b1743f; }
+.champions__item--me { background: var(--panel); }
+.champions__rank {
+  flex: 0 0 auto;
+  width: 22px;
+  text-align: center;
+  font-family: var(--display);
+  font-weight: 700;
+  color: var(--faint);
+}
+.champions__rank--gold { color: var(--gold); }
+.champions__rank--silver { color: #98a1ab; }
+.champions__rank--bronze { color: #b1743f; }
+.champions__name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.champions__count {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--gold);
+}
+.champions__count-label {
+  font-family: var(--body);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}

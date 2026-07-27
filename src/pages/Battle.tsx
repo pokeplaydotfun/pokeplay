@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useBattle, type OwnMon, type PubMon } from '../lib/useBattle'
+import { useBattle, type OwnMon } from '../lib/useBattle'
 import { loadPokedex, titleCase, formatEth, type Pokedex } from '../lib/api'
 import { Banner, Spinner } from '../components/ui'
 import { CURRENCY } from '../config'
@@ -47,22 +47,34 @@ function effClass(eff: number): 'super' | 'resist' | 'neutral' | 'immune' {
   return eff === 0 ? 'immune' : eff > 1 ? 'super' : eff < 1 ? 'resist' : 'neutral'
 }
 
-const WEATHER_LABEL = { sun: 'Harsh sun', rain: 'Rain', sand: 'Sandstorm', hail: 'Hail' } as const
-const WEATHER_ICON = { sun: '☀️', rain: '🌧️', sand: '🌪️', hail: '❄️' } as const
+export const WEATHER_LABEL = { sun: 'Harsh sun', rain: 'Rain', sand: 'Sandstorm', hail: 'Hail' } as const
+export const WEATHER_ICON = { sun: '☀️', rain: '🌧️', sand: '🌪️', hail: '❄️' } as const
 
 /* ------------------------------------------------------------------ */
 /* pieces of the arena                                                 */
 /* ------------------------------------------------------------------ */
 
+/**
+ * A mon as the HP box needs it. `boosts` is optional so the box can also render
+ * a replay snapshot, which carries HP/status but not stat stages.
+ */
+type BoxMon = {
+  name: string
+  hp: number
+  maxHp: number
+  status: string | null
+  boosts?: Record<string, number>
+}
+
 /** The floating HP box (name, Lv, hpbar.png bar, ball row, stat chips). */
-function HpBox({
+export function HpBox({
   mon, team, isPlayer,
 }: {
-  mon: PubMon
-  team: PubMon[]
+  mon: BoxMon
+  team: { fainted: boolean }[]
   isPlayer: boolean
 }) {
-  const boosts = STAT_ORDER.filter(([k]) => mon.boosts[k as keyof typeof mon.boosts])
+  const boosts = STAT_ORDER.filter(([k]) => mon.boosts?.[k])
   return (
     <div className="bt-box-wrap">
       <div className="bt-box">
@@ -97,7 +109,7 @@ function HpBox({
       {boosts.length > 0 && (
         <div className="bt-stats">
           {boosts.map(([k, label]) => {
-            const v = mon.boosts[k as keyof typeof mon.boosts]
+            const v = mon.boosts?.[k] ?? 0
             return (
               <span key={k} className={`bt-stat ${v > 0 ? 'up' : 'down'}`}>
                 {label} {v > 0 ? '+' : ''}{v}
@@ -410,36 +422,38 @@ export function BattleView({ roomId, onLeave }: { roomId: string | undefined; on
                       b.ended.youWon ? 'win' : b.ended.winner === null ? 'draw' : 'loss'
                     }`}
                   >
-                    <div className="bt-result__title">
-                      {b.ended.winner === null ? 'Draw' : b.ended.youWon ? 'You win' : 'You lose'}
-                    </div>
-                    <p className="bt-result__body">
-                      {b.stakeWei !== '0' && b.ended.youWon
-                        ? `Claim your ${formatEth(b.stakeWei)} ${CURRENCY} payout from the lobby.`
-                        : b.stakeWei !== '0' && b.ended.winner === null
-                          ? 'A draw refunds both stakes.'
-                          : 'Good game.'}
-                    </p>
-                    <details className="bt-verify">
-                      <summary>Verify this battle</summary>
-                      <p>
-                        Every roll came from one seed, committed before the first turn and revealed
-                        now. Hash the seed and it must equal the commitment.
+                    <div className="bt-result__card">
+                      <div className="bt-result__title">
+                        {b.ended.winner === null ? 'Draw' : b.ended.youWon ? 'You win' : 'You lose'}
+                      </div>
+                      <p className="bt-result__body">
+                        {b.stakeWei !== '0' && b.ended.youWon
+                          ? `Claim your ${formatEth(b.stakeWei)} ${CURRENCY} payout from the lobby.`
+                          : b.stakeWei !== '0' && b.ended.winner === null
+                            ? 'A draw refunds both stakes.'
+                            : 'Good game.'}
                       </p>
-                      <div className="bt-verify__row">
-                        <span>Commitment</span>
-                        <code>{b.ended.seedHash}</code>
+                      <details className="bt-verify">
+                        <summary>Verify this battle</summary>
+                        <p>
+                          Every roll came from one seed, committed before the first turn and revealed
+                          now. Hash the seed and it must equal the commitment.
+                        </p>
+                        <div className="bt-verify__row">
+                          <span>Commitment</span>
+                          <code>{b.ended.seedHash}</code>
+                        </div>
+                        <div className="bt-verify__row">
+                          <span>Seed</span>
+                          <code>{b.ended.seed}</code>
+                        </div>
+                      </details>
+                      <div className="bt-result__actions">
+                        {roomId && (
+                          <Link className="btn btn--dark" to={`/replay/${roomId}`}>Watch the replay</Link>
+                        )}
+                        <button className="btn btn--ghost" onClick={onLeave}>Back to the lobby</button>
                       </div>
-                      <div className="bt-verify__row">
-                        <span>Seed</span>
-                        <code>{b.ended.seed}</code>
-                      </div>
-                    </details>
-                    <div className="bt-result__actions">
-                      {roomId && (
-                        <Link className="btn btn--dark" to={`/replay/${roomId}`}>Watch the replay</Link>
-                      )}
-                      <button className="btn btn--ghost" onClick={onLeave}>Back to the lobby</button>
                     </div>
                   </div>
                 )}

@@ -29,6 +29,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The tournament-titles tile — a special gold accent so a champion stands out. */
+.profile__tile--champion {
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(181, 135, 49, 0.12), transparent 62%),
+    var(--white);
+  border-color: #ecdfc0;
+}
+.profile__tile--champion .profile__tile-value { color: var(--gold); }
+.profile__tile--champion .profile__tile-label { color: var(--gold); }
+.profile__tile-trophy { margin-right: 6px; font-size: 1.2rem; }
+
 .profile__tile-value--up {
   color: #226b3a;
 }

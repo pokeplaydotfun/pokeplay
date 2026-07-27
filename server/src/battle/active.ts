@@ -19,6 +19,8 @@ export {
   replaceFainted,
   validateAction,
   publicState,
+  spectatorState,
+  spectatorEvents,
   isTeamWiped,
   firstLegalAction,
   viewerEvents,

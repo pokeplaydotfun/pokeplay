@@ -1,11 +1,24 @@
-.replay .arena {
-  min-height: 260px;
-}
-
 /* A player who hid their wallet: their name, never an address. */
 .replay__hidden {
   color: var(--faint);
   font-style: italic;
+}
+
+/* Share button, pinned to the top-right of the centred console top bar. */
+.replay__share {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 7px 14px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 560px) {
+  /* On a narrow screen it drops under the title rather than overlapping it. */
+  .replay__share {
+    position: static;
+    margin-top: 8px;
+  }
 }
 
 /* ---------- transport bar ---------- */
@@ -98,18 +111,11 @@
 .rp__speed:hover { background: var(--panel); }
 .rp__speed--on { background: var(--ink); color: var(--white); }
 
-/* ---------- bottom ---------- */
-
-.rp__bottom {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 16px;
-  margin-top: 16px;
-  align-items: start;
-}
+/* ---------- verification card ---------- */
 
 .rp__verify {
   padding: 18px 20px;
+  margin-top: 16px;
 }
 
 .rp__checks {
@@ -158,10 +164,6 @@
   color: var(--muted);
   word-break: break-all;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-@media (max-width: 900px) {
-  .rp__bottom { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {

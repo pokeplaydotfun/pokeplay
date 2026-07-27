@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { parseEther } from 'viem'
 import { usePublicClient, useWriteContract } from 'wagmi'
-import { api, formatEth, fromUnix } from '../lib/api'
+import { api, formatEth, fromUnix, formatStart, toLocalInput, usdCentsToEth, formatEthAmount } from '../lib/api'
 import { useSession } from '../lib/session'
 import { CURRENCY } from '../config'
 import { describeTxError, isUserRejection } from '../lib/escrow'
-import { deadlineFromNow, poolAbi, poolAddress, poolReady, tournamentIdFromReceipt } from '../lib/tournamentPool'
+import { poolAbi, poolAddress, poolReady, tournamentIdFromReceipt } from '../lib/tournamentPool'
 import { Banner, Empty, Spinner } from '../components/ui'
 import '../styles/tournaments.css'
 
@@ -19,9 +19,16 @@ type Row = {
   status: 'open' | 'running' | 'finished' | 'cancelled'
   winner: string | null
   createdAt: number
+  startAt: number | null
+  prizeUsdCents: number | null
 }
 
-type List = { canCreate: boolean; paidEntryAvailable: boolean; tournaments: Row[] }
+type List = {
+  canCreate: boolean
+  paidEntryAvailable: boolean
+  ethUsd: number | null
+  tournaments: Row[]
+}
 
 const STATUS_LABEL: Record<Row['status'], string> = {
   open: 'Sign-ups open',
@@ -65,7 +72,9 @@ export default function Tournaments() {
 
         {error && <Banner kind="error">Could not load tournaments: {error}</Banner>}
 
-        {data?.canCreate && <CreateForm paid={data.paidEntryAvailable} onCreated={load} />}
+        {data?.canCreate && (
+          <CreateForm paid={data.paidEntryAvailable} ethUsd={data.ethUsd} onCreated={load} />
+        )}
 
         {data === null && !error ? (
           <Spinner label="Loading tournaments…" />
@@ -94,8 +103,15 @@ export default function Tournaments() {
                         ? `${formatEth(t.entryFeeWei)} ${CURRENCY} entry`
                         : 'Free entry'}
                     </span>
+                    {t.prizeUsdCents ? (
+                      <span className="tn__prize-tag">
+                        🏆 ${(t.prizeUsdCents / 100).toLocaleString()} prize
+                      </span>
+                    ) : null}
                     <span className="tn__when">
-                      {fromUnix(t.createdAt).toLocaleDateString()}
+                      {t.status === 'open' && t.startAt
+                        ? `Starts ${formatStart(t.startAt)}`
+                        : fromUnix(t.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </Link>
@@ -110,7 +126,13 @@ export default function Tournaments() {
 
 /* ------------------------------------------------------------------ */
 
-function CreateForm({ paid, onCreated }: { paid: boolean; onCreated: () => void }) {
+function CreateForm({
+  paid, ethUsd, onCreated,
+}: {
+  paid: boolean
+  ethUsd: number | null
+  onCreated: () => void
+}) {
   const publicClient = usePublicClient()
   const { writeContractAsync } = useWriteContract()
 
@@ -118,7 +140,12 @@ function CreateForm({ paid, onCreated }: { paid: boolean; onCreated: () => void 
   const [name, setName] = useState('')
   const [size, setSize] = useState(8)
   const [feeEth, setFeeEth] = useState('') // blank/0 = free
-  const [closeInS, setCloseInS] = useState(24 * 3600) // sign-ups close after this; 0 = manual
+  // An optional prize set in DOLLARS, paid by hand on top of the pot.
+  const [prizeUsd, setPrizeUsd] = useState('')
+  // The exact local date+time the bracket is drawn. Defaults to 24h out.
+  const [startLocal, setStartLocal] = useState(() => toLocalInput(new Date(Date.now() + 24 * 3600 * 1000)))
+  // Free tournaments may skip a scheduled time and be started by hand instead.
+  const [manual, setManual] = useState(false)
   const [busy, setBusy] = useState(false)
   const [step, setStep] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -138,10 +165,30 @@ function CreateForm({ paid, onCreated }: { paid: boolean; onCreated: () => void 
     }
   }
 
-  // A paid tournament always closes on a timer (the pool needs an on-chain
-  // deadline); a free one may be left for the admin to start by hand.
-  const timed = feeWei > 0n || closeInS > 0
-  const startAtSec = timed ? Math.floor(Date.now() / 1000) + closeInS : null
+  // "Start it myself" is only offered for free tournaments — a paid one needs an
+  // on-chain deadline, so it always runs on a schedule.
+  const canManual = feeWei === 0n
+  const isManual = canManual && manual
+  const timed = !isManual
+  const startMs = new Date(startLocal).getTime()
+  const startAtSec = timed && Number.isFinite(startMs) ? Math.floor(startMs / 1000) : null
+  // A scheduled start must be in the future — with a small cushion so a paid
+  // tournament's create tx has time to mine before its own registration deadline.
+  const startError =
+    timed && (startAtSec === null || startAtSec <= Math.floor(Date.now() / 1000) + 60)
+      ? 'Pick a start time at least a minute from now.'
+      : null
+
+  // Optional prize, entered in dollars, stored as cents. Paid out by hand.
+  let prizeUsdCents: number | null = null
+  let prizeError: string | null = null
+  if (prizeUsd.trim()) {
+    const dollars = Number(prizeUsd.trim())
+    if (!Number.isFinite(dollars) || dollars < 0) prizeError = 'Prize must be a dollar amount.'
+    else if (dollars > 1_000_000) prizeError = 'Prize is capped at $1,000,000.'
+    else prizeUsdCents = Math.round(dollars * 100) || null
+  }
+  const prizeEth = prizeUsdCents ? usdCentsToEth(prizeUsdCents, ethUsd) : null
 
   const create = async () => {
     setError(null)
@@ -161,7 +208,9 @@ function CreateForm({ paid, onCreated }: { paid: boolean; onCreated: () => void 
           address: poolAddress,
           abi: poolAbi,
           functionName: 'createTournament',
-          args: [feeWei, size, deadlineFromNow(closeInS)],
+          // The pool's registration deadline IS the scheduled start, so sign-ups
+          // close on chain at the exact moment the bracket is drawn server-side.
+          args: [feeWei, size, BigInt(startAtSec!)],
         })
         setStep('Waiting for confirmation…')
         const receipt = await publicClient!.waitForTransactionReceipt({ hash })
@@ -178,9 +227,11 @@ function CreateForm({ paid, onCreated }: { paid: boolean; onCreated: () => void 
         entryFeeWei: feeWei.toString(),
         onchainId,
         startAt: startAtSec,
+        prizeUsdCents,
       })
       setName('')
       setFeeEth('')
+      setPrizeUsd('')
       setOpen(false)
       onCreated()
     } catch (e) {
@@ -254,33 +305,62 @@ function CreateForm({ paid, onCreated }: { paid: boolean; onCreated: () => void 
         </p>
       )}
 
-      <label className="tn__label" htmlFor="tn-close">Sign-ups close</label>
-      <select
-        id="tn-close"
+      <label className="tn__label" htmlFor="tn-prize">Prize (USD) — optional, paid by you manually</label>
+      <input
+        id="tn-prize"
         className="tn__input"
-        value={closeInS}
-        onChange={(e) => setCloseInS(Number(e.target.value))}
-      >
-        <option value={3600}>in 1 hour</option>
-        <option value={3 * 3600}>in 3 hours</option>
-        <option value={12 * 3600}>in 12 hours</option>
-        <option value={24 * 3600}>in 24 hours</option>
-        {feeWei === 0n && <option value={0}>no timer — I’ll start it</option>}
-      </select>
+        value={prizeUsd}
+        onChange={(e) => setPrizeUsd(e.target.value)}
+        placeholder="e.g. 500"
+        inputMode="decimal"
+      />
+      {prizeUsdCents ? (
+        <p className="tn__note">
+          Prize pool shows as{' '}
+          <strong>
+            {prizeEth != null ? `≈ ${formatEthAmount(prizeEth)} ${CURRENCY}` : `${CURRENCY} —`}
+          </strong>{' '}
+          (${(prizeUsdCents / 100).toLocaleString()}).{' '}
+          {feeWei > 0n
+            ? 'Added on top of the entry pot. Entries still pay out on chain automatically; you pay this prize by hand to the winner.'
+            : 'You pay this to the winner by hand — their wallet address is shown on the tournament once it finishes.'}
+        </p>
+      ) : (
+        <p className="tn__note">Leave blank for no added prize.</p>
+      )}
+
+      <label className="tn__label" htmlFor="tn-start">Start date &amp; time</label>
+      <input
+        id="tn-start"
+        className="tn__input"
+        type="datetime-local"
+        value={startLocal}
+        min={toLocalInput(new Date())}
+        disabled={isManual}
+        onChange={(e) => setStartLocal(e.target.value)}
+      />
+      {canManual && (
+        <label className="tn__check">
+          <input type="checkbox" checked={manual} onChange={(e) => setManual(e.target.checked)} />
+          Start it myself instead (no scheduled time)
+        </label>
+      )}
       <p className="tn__note">
         {timed
-          ? 'It starts automatically when sign-ups close, with whoever has joined (at least 2). You can extend or cancel it before then.'
+          ? `The bracket is drawn at ${startAtSec ? formatStart(startAtSec) : 'the chosen time'}, with whoever has joined (at least two). You can push it back or cancel it beforehand — it never starts early.`
           : 'You start it by hand once enough players have joined.'}
       </p>
 
+      {startError && <div className="tn__error">{startError}</div>}
       {feeError && <div className="tn__error">{feeError}</div>}
+      {prizeError && <div className="tn__error">{prizeError}</div>}
       {error && <div className="tn__error">{error}</div>}
 
       <div className="tn__create-actions">
         <button
           className="btn btn--dark"
           onClick={() => void create()}
-          disabled={busy || !name.trim() || feeError !== null}
+          disabled={busy || !name.trim() || feeError !== null || startError !== null || prizeError !== null}
         >
           {busy ? (step ?? 'Posting…') : feeWei > 0n ? 'Open pool & post' : 'Post it'}
         </button>

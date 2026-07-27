@@ -262,6 +262,36 @@ function connect(token: string) {
   }
 }
 
+/** Connect as a read-only spectator — no token, watching a specific room. */
+function connectSpectate(room: string) {
+  const sock = new WebSocket(`${WS}/ws?spectate=1&room=${room}`)
+  const queue: Msg[] = []
+  const waiters: ((m: Msg) => void)[] = []
+  sock.on('message', (raw) => {
+    const m = JSON.parse(String(raw)) as Msg
+    const w = waiters.shift()
+    if (w) w(m)
+    else queue.push(m)
+  })
+  const next = (): Promise<Msg> =>
+    queue.length ? Promise.resolve(queue.shift()!) : new Promise((r) => waiters.push(r))
+  const until = async (type: string, limit = 2000): Promise<Msg> => {
+    for (let i = 0; i < limit; i++) {
+      const m = await next()
+      if (m.type === type) return m
+    }
+    throw new Error(`spectator never received "${type}"`)
+  }
+  return {
+    sock, next, until,
+    open: new Promise<void>((r, j) => {
+      sock.on('open', () => r())
+      sock.on('error', j)
+    }),
+    send: (m: unknown) => sock.send(JSON.stringify(m)),
+  }
+}
+
 await check('a stranger cannot connect to the battle socket', async () => {
   const carol = await login('0x' + 'c'.repeat(63) + '1' as `0x${string}`)
   const c = connect(carol.token)
@@ -281,6 +311,61 @@ await check('both players receive the seed commitment on connect', async () => {
   assert.ok(a.seedHash, 'no seed hash')
   assert.strictEqual(a.seedHash, b.seedHash, 'players got different commitments')
   assert.notStrictEqual(a.you, b.you, 'both players got the same seat')
+})
+
+/* ---------------- spectating the live battle ---------------- */
+
+const spec = connectSpectate(roomId)
+await spec.open
+
+await check('a spectator connects without signing in and gets the board', async () => {
+  const hello = await spec.until('hello')
+  assert.strictEqual(hello.spectator, true, 'spectator hello missing spectator flag')
+  assert.ok(hello.seedHash, 'spectator got no seed commitment')
+
+  const st = await spec.until('state')
+  const s = st.state as {
+    p0: { active: number; team: Record<string, unknown>[] }
+    p1: { active: number; team: Record<string, unknown>[] }
+  }
+  assert.ok(s.p0 && s.p1, 'spectator state is missing a side')
+  // A watcher must never learn either player's move list or PP.
+  assert.ok(!('moves' in s.p0.team[0]), 'spectator can see p0 moves')
+  assert.ok(!('moves' in s.p1.team[0]), 'spectator can see p1 moves')
+  assert.strictEqual(typeof s.p0.team[0].hp, 'number', 'spectator has no HP to render')
+  // Identities are attached so the page can name each side.
+  assert.ok(st.p0 && st.p1, 'spectator state omitted the trainers')
+})
+
+// Which side alice sits on, so the privacy check knows where to look.
+let aliceSide: 'p0' | 'p1' = 'p0'
+
+await check('/api/live lists the battle in progress', async () => {
+  const r = await api('/api/live')
+  assert.strictEqual(r.status, 200)
+  const b = (r.body.battles as Record<string, unknown>[]).find((x) => x.roomId === roomId)
+  assert.ok(b, 'live battle not listed')
+  assert.ok(b!.p0 && b!.p1, 'live listing withheld a public address')
+  assert.ok((b!.spectators as number) >= 1, 'spectator not counted')
+  aliceSide = String(b!.p0).toLowerCase() === alice.address ? 'p0' : 'p1'
+})
+
+await check('a hidden wallet is masked on the live list', async () => {
+  const on = await api('/api/me/privacy', {
+    method: 'POST', headers: auth(alice.token), body: JSON.stringify({ hideWallet: true }),
+  })
+  assert.strictEqual(on.status, 200)
+
+  const r = await api('/api/live')
+  const b = (r.body.battles as Record<string, unknown>[]).find((x) => x.roomId === roomId)!
+  const other = aliceSide === 'p0' ? 'p1' : 'p0'
+  assert.strictEqual(b[aliceSide], null, "hidden player's address leaked to the live list")
+  assert.ok(b[other], "opponent's public address was wrongly withheld")
+
+  // Restore, so the rest of the suite sees alice's real address again.
+  await api('/api/me/privacy', {
+    method: 'POST', headers: auth(alice.token), body: JSON.stringify({ hideWallet: false }),
+  })
 })
 
 await check('the server rejects a malformed action', async () => {
@@ -334,6 +419,22 @@ await check('a full battle plays to completion and produces a winner', async () 
   assert.strictEqual(check, e.seedHash, 'revealed seed does not match the commitment')
 })
 
+await check('the spectator sees the same reveal the players do', async () => {
+  const e = await spec.until('ended')
+  assert.ok(e.winner === 0 || e.winner === 1 || e.winner === null, `bad spectator winner ${e.winner}`)
+  assert.ok(e.seed, 'spectator never got the revealed seed')
+  const { createHash } = await import('node:crypto')
+  const digest = createHash('sha256').update(String(e.seed)).digest('hex')
+  assert.strictEqual(digest, e.seedHash, "spectator's seed does not match the commitment")
+})
+
+await check('a finished battle drops off the live list', async () => {
+  const r = await api('/api/live')
+  const b = (r.body.battles as Record<string, unknown>[]).find((x) => x.roomId === roomId)
+  assert.ok(!b, 'ended battle still listed as live')
+})
+
+spec.sock.close()
 wsA.sock.close()
 wsB.sock.close()
 
@@ -353,8 +454,10 @@ await check('a single match against one opponent does not rank anyone', async ()
   // Anti-farming: ranking needs several DISTINCT opponents, so two accounts
   // trading wins never reach the board.
   const { body: rules } = await api('/api/leaderboard/rules')
-  const { body: rows } = await api('/api/leaderboard')
-  assert.ok(Array.isArray(rows), 'leaderboard did not return a list')
+  // /api/leaderboard returns { players, champions } — the ranked table is players.
+  const { body } = await api('/api/leaderboard')
+  const rows = body.players
+  assert.ok(Array.isArray(rows), 'leaderboard did not return a players list')
   assert.strictEqual(
     rows.length, 0,
     `two players with one opponent each were ranked (min is ${rules.minOpponents})`,

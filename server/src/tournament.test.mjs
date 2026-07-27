@@ -266,5 +266,56 @@ await check('an odd player count still resolves, using byes', async () => {
   assert.ok(done.every((m) => m.winner), 'a bye produced no winner')
 })
 
+await check('a hidden-wallet champion and entrant are not leaked on the tournament page', async () => {
+  // Take the finished 4-player tournament (tid) and hide the champion's wallet.
+  const before = await api(`/api/tournaments/${tid}`)
+  const championAddr = before.body.winner
+  assert.ok(championAddr, 'no champion to test with')
+  const champion = byAddress.get(championAddr)
+  assert.ok(champion, 'champion is not a known player')
+
+  const priv = await api('/api/me/privacy', {
+    method: 'POST', headers: auth(champion.token), body: JSON.stringify({ hideWallet: true }),
+  })
+  assert.strictEqual(priv.status, 200)
+  assert.strictEqual(priv.body.hideWallet, true)
+
+  // As a stranger (no auth): the raw wallet must appear nowhere.
+  const { body: pub } = await api(`/api/tournaments/${tid}`)
+  const blob = JSON.stringify(pub).toLowerCase()
+  assert.ok(!blob.includes(championAddr.toLowerCase()), 'champion wallet leaked in the public view')
+
+  assert.strictEqual(pub.winner, null, 'hidden champion address was sent to the public')
+  assert.strictEqual(pub.winnerHidden, true, 'hidden champion not flagged hidden')
+  assert.strictEqual(pub.hasWinner, true, 'a champion exists but hasWinner was false')
+  assert.ok(pub.winnerName, 'the champion username should still show')
+  assert.strictEqual(pub.winnerPayout, null, 'a stranger was given the payout wallet')
+
+  // The champion is still listed as an entrant, by name, with no address.
+  const entry = pub.players.find((p) => p.hidden)
+  assert.ok(entry, 'hidden entrant missing from the list')
+  assert.strictEqual(entry.address, null, 'hidden entrant address leaked')
+  assert.ok(entry.name, 'hidden entrant lost their name')
+
+  // The bracket still resolves: the final is decided and exactly one side won.
+  const final = pub.matches.find((m) => m.round === pub.rounds)
+  assert.ok(final && final.decided, 'the final should be decided')
+  assert.strictEqual(Number(final.p0Won) + Number(final.p1Won), 1, 'exactly one finalist should have won')
+
+  // The admin DOES get the real wallet, for the manual prize payout.
+  const asAdmin = await api(`/api/tournaments/${tid}`, { headers: auth(admin.token) })
+  assert.strictEqual(
+    asAdmin.body.winnerPayout?.toLowerCase(), championAddr.toLowerCase(),
+    'admin should see the real champion wallet for payout',
+  )
+
+  // The champion sees their OWN address, so their prize-claim panel still works.
+  const asSelf = await api(`/api/tournaments/${tid}`, { headers: auth(champion.token) })
+  assert.strictEqual(
+    asSelf.body.winner?.toLowerCase(), championAddr.toLowerCase(),
+    'a hidden champion should still see their own address',
+  )
+})
+
 console.log(`\n${passed} tournament checks passed${process.exitCode ? ' (with failures)' : ''}`)
 process.exit(process.exitCode ?? 0)

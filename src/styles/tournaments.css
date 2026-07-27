@@ -132,6 +132,113 @@
   color: var(--red);
 }
 
+/* "Start it myself" toggle in the create form */
+.tn__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tn__check input { width: 15px; height: 15px; accent-color: var(--ink); }
+.tn__input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- scheduled-start countdown card ---- */
+.tn__clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 22px;
+  padding: 22px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+.tn__clock-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.tn__clock-count {
+  font-family: var(--display);
+  font-size: clamp(2rem, 6vw, 2.9rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.tn__clock-when { font-size: 13.5px; color: var(--muted); }
+
+/* ---- prize pool card ---- */
+.tn__prize-tag {
+  color: var(--gold);
+  font-weight: 600;
+}
+.tn__pool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin: 0 0 22px;
+  padding: 22px;
+  text-align: center;
+  background:
+    radial-gradient(120% 140% at 50% 0%, rgba(181, 135, 49, 0.10), transparent 60%),
+    var(--white);
+  border: 1px solid #ecdfc0;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.tn__pool-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+}
+.tn__pool-eth {
+  font-family: var(--display);
+  font-size: clamp(1.7rem, 5vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.tn__pool-usd { font-size: 15px; font-weight: 600; color: var(--muted); }
+.tn__pool-break { margin-top: 6px; font-size: 12.5px; color: var(--faint); }
+
+/* ---- admin-only manual-payout panel ---- */
+.tn__payout {
+  margin: 0 0 22px;
+  padding: 16px 18px;
+  border: 1px solid #ecdfc0;
+  border-left: 4px solid var(--gold);
+  border-radius: var(--radius);
+  background: #fdf8ee;
+}
+.tn__payout-head { font-weight: 700; color: var(--ink); }
+.tn__payout-body { margin: 6px 0 10px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.tn__payout-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.tn__payout-row > span {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
 /* ---- your position ---- */
 
 .tn__you {
@@ -187,6 +294,13 @@
 }
 
 .tn__player { font-weight: 600; }
+
+/* A player who has hidden their wallet: shown by username with a quiet lock. */
+.tn__player--hidden,
+.tn__side-hidden {
+  font-weight: 600;
+  color: var(--faint);
+}
 
 /* ---- bracket ---- */
 
@@ -285,6 +399,15 @@
 .tn__replay:hover {
   color: var(--ink);
   background: var(--white);
+}
+/* A match being played right now — a red "live" cue on the same bracket slot. */
+.tn__watch {
+  color: var(--red);
+  font-weight: 700;
+}
+.tn__watch:hover {
+  color: var(--red);
+  background: var(--red-soft);
 }
 
 @media (max-width: 620px) {

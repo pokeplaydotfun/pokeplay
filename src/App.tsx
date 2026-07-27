@@ -1,5 +1,5 @@
-import { Suspense, lazy, useState } from 'react'
-import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { AccountMenu } from './components/AccountMenu'
 import { Mark, Spinner } from './components/ui'
 import { Footer } from './components/Footer'
@@ -23,6 +23,7 @@ const Tournament = lazy(() => import('./pages/Tournament'))
 const Token = lazy(() => import('./pages/Token'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Replay = lazy(() => import('./pages/Replay'))
+const Watch = lazy(() => import('./pages/Watch'))
 
 function Header() {
   const [menu, setMenu] = useState(false)
@@ -77,9 +78,38 @@ function LegacyBattleRedirect() {
   return <Navigate to={roomId ? `/play/${roomId}` : '/play'} replace />
 }
 
+/** The page name shown in the tab, e.g. "PokePlay - Leaderboard". Home is the
+ *  brand alone. Order matters: the dynamic routes (a battle, one tournament, a
+ *  replay) are matched by prefix before their plain list page. */
+function pageName(pathname: string): string | null {
+  if (pathname === '/') return null
+  if (pathname.startsWith('/play/')) return 'Battle'
+  if (pathname === '/play') return 'Play'
+  if (pathname.startsWith('/tournaments/')) return 'Tournament'
+  if (pathname === '/tournaments') return 'Tournaments'
+  if (pathname.startsWith('/replay/')) return 'Replay'
+  if (pathname.startsWith('/watch/')) return 'Watch'
+  if (pathname === '/guide') return 'Guide'
+  if (pathname === '/leaderboard') return 'Leaderboard'
+  if (pathname === '/token') return 'Token'
+  if (pathname === '/profile') return 'Profile'
+  return null
+}
+
+/** Keeps the browser-tab title in step with the route. */
+function TitleSync() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const page = pageName(pathname)
+    document.title = page ? `${BRAND.name} - ${page}` : BRAND.name
+  }, [pathname])
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <TitleSync />
       {/* The dev-login probe 404s on any real deployment, which logged an
           error in every visitor's console. Only mount it where it can work. */}
       {DEV_LOGIN_POSSIBLE && <DevLogin />}
@@ -99,6 +129,7 @@ export default function App() {
           <Route path="/token" element={<Token />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/replay/:id" element={<Replay />} />
+          <Route path="/watch/:roomId" element={<Watch />} />
 
           {/* Old split routes now all land on the unified page. */}
           <Route path="/teams" element={<Navigate to="/play" replace />} />

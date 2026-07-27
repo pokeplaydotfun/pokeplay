@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, loadPokedex, shortAddr, titleCase, type Pokedex } from '../lib/api'
-import { Banner, HpBar, Spinner, StatusChip, TypeBadge } from '../components/ui'
+import { Banner, Spinner } from '../components/ui'
+import { HpBox } from './Battle'
 import '../styles/battle.css'
 import '../styles/replay.css'
 import { Address } from '../components/Address'
@@ -177,93 +178,86 @@ export default function ReplayPage() {
   const result =
     replay.winner === null ? 'Draw' : `${sideLabel(replay.winner)} won`
 
+  // The latest visible log line, shown in the prompt strip and tinted by actor.
+  const lastLine = log[log.length - 1]
+  const promptClass =
+    !lastLine || lastLine.side === undefined ? '' : lastLine.side === 0 ? ' p-me' : ' p-foe'
+
   return (
-    <div className="wrap battle replay">
-      <div className="battle__head">
-        <div>
-          <div className="eyebrow">
+    <div className="wrap bt-page replay">
+      <div className="bt-console">
+        <div className="bt-topbar">
+          <div className="bt-topbar__eyebrow">
             Replay · {sideTag(0)} vs {sideTag(1)}
             {replay.practice && ' · practice'}
           </div>
-          <h1 className="battle__title">{result}</h1>
-        </div>
-        <button className="btn btn--dark" onClick={() => void share()}>
-          {copied ? 'Link copied' : 'Share'}
-        </button>
-      </div>
-
-      {!replay.reproduced && (
-        <Banner kind="error">
-          This battle could not be reproduced from its seed. The stored result and the stored
-          moves disagree, so treat the outcome as unverified.
-        </Banner>
-      )}
-
-      {/* arena ------------------------------------------------------- */}
-      <div className="arena">
-        <div className="arena__side arena__side--foe">
-          <div className="plate plate--left">
-            <div className="plate__row">
-              <span className="plate__name">{titleCase(foe.name)}</span>
-              <StatusChip status={foe.status} />
-            </div>
-            <HpBar hp={foe.hp} maxHp={foe.maxHp} />
-            <div className="plate__hp">
-              {Math.round((foe.hp / foe.maxHp) * 100)}%
-            </div>
-            <div className="plate__types">
-              {foe.types.map((t) => (
-                <TypeBadge key={t} type={t} small />
-              ))}
-            </div>
-          </div>
-          <img
-            className={`mon mon--foe${foe.fainted ? ' mon--fainted' : ''}`}
-            src={sprite(foe.speciesId, false)}
-            alt={titleCase(foe.name)}
-          />
-          <div className="tray">
-            {cur.state.foe.team.map((m, i) => (
-              <span
-                key={i}
-                className={`tray__pip${m.fainted ? ' tray__pip--out' : ''}${
-                  i === cur.state.foe.active ? ' tray__pip--active' : ''
-                }`}
-              />
-            ))}
-          </div>
+          <div className="bt-topbar__title">{result}</div>
+          <button className="btn btn--dark replay__share" onClick={() => void share()}>
+            {copied ? 'Link copied' : 'Share'}
+          </button>
         </div>
 
-        <div className="arena__side arena__side--you">
-          <img
-            className={`mon mon--you${me.fainted ? ' mon--fainted' : ''}`}
-            src={sprite(me.speciesId, true) || sprite(me.speciesId, false)}
-            alt={titleCase(me.name)}
-          />
-          <div className="plate plate--right">
-            <div className="plate__row">
-              <span className="plate__name">{titleCase(me.name)}</span>
-              <StatusChip status={me.status} />
-            </div>
-            <HpBar hp={me.hp} maxHp={me.maxHp} />
-            <div className="plate__hp">
-              {me.hp} / {me.maxHp}
-            </div>
-            <div className="plate__types">
-              {me.types.map((t) => (
-                <TypeBadge key={t} type={t} small />
-              ))}
-            </div>
+        {!replay.reproduced && (
+          <Banner kind="error">
+            This battle could not be reproduced from its seed. The stored result and the stored
+            moves disagree, so treat the outcome as unverified.
+          </Banner>
+        )}
+
+        <div className="bt-frame">
+          <div className="bt-vs">
+            <span className="bt-vs-name me">{sideLabel(0)}</span>
+            <span className="bt-vs-name foe">{sideLabel(1)}</span>
           </div>
-          <div className="tray">
-            {cur.state.you.team.map((m, i) => (
-              <span
-                key={i}
-                className={`tray__pip${m.fainted ? ' tray__pip--out' : ''}${
-                  i === cur.state.you.active ? ' tray__pip--active' : ''
-                }`}
-              />
-            ))}
+
+          <div className="bt-main">
+            {/* actor-separated log up to the current step (p0 left, p1 right) */}
+            <div className="bt-log">
+              <div className="bt-log-lines" ref={logRef}>
+                {log.length === 0 && <div className="bt-log-faint">Battle starting…</div>}
+                {log.map((line, i) => (
+                  <div
+                    key={i}
+                    className={`bt-log-line${line.side === 0 ? ' me' : line.side === 1 ? ' foe' : ''}`}
+                  >
+                    {line.msg}
+                  </div>
+                ))}
+              </div>
+              <div className={`bt-log-prompt${promptClass}`}>
+                {lastLine?.msg ?? `Turn ${cur.turn}`}
+              </div>
+            </div>
+
+            {/* the arena at the scrubbed-to step */}
+            <div className="bt-window">
+              <div className="bt-stage">
+                <div className="bt-turn">
+                  <span className="bt-turn-label" />
+                  <span className="bt-turn-n">{cur.turn}</span>
+                </div>
+
+                {/* p1 (foe) — top */}
+                <div className="bt-foe">
+                  <img
+                    className={`bt-sprite${foe.fainted ? ' fainted' : ''}`}
+                    src={sprite(foe.speciesId, false)}
+                    alt={titleCase(foe.name)}
+                  />
+                  <HpBox mon={foe} team={cur.state.foe.team} isPlayer={false} />
+                </div>
+
+                {/* p0 (you) — bottom, sprite first so the HP box paints on top */}
+                <div className="bt-me">
+                  <img
+                    className={`bt-sprite${me.fainted ? ' fainted' : ''}`}
+                    src={sprite(me.speciesId, true) || sprite(me.speciesId, false)}
+                    alt={titleCase(me.name)}
+                  />
+                  <HpBox mon={me} team={cur.state.you.team} isPlayer={false} />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -315,54 +309,33 @@ export default function ReplayPage() {
         </div>
       </div>
 
-      {/* log + verification ------------------------------------------ */}
-      <div className="rp__bottom">
-        <div className="logbox">
-          <div className="logbox__head">Battle log</div>
-          <div className="logbox__body" ref={logRef}>
-            {log.map((line, i) => (
-              <div
-                key={i}
-                className={`logbox__line${line.msg.startsWith('—') ? ' logbox__line--turn' : ''}`}
-              >
-                {line.side !== undefined && (
-                  <span className={`logtag logtag--${line.side === 0 ? 'you' : 'foe'}`}>
-                    {sideLabel(line.side)}
-                  </span>
-                )}
-                {line.msg}
-              </div>
-            ))}
+      {/* verification ------------------------------------------------ */}
+      <div className="card rp__verify">
+        <div className="eyebrow">Verification</div>
+        <ul className="rp__checks">
+          <li className={replay.seedVerified ? 'ok' : 'bad'}>
+            {replay.seedVerified ? '✓' : '✕'} Seed matches the commitment published before the
+            first turn
+          </li>
+          <li className={replay.reproduced ? 'ok' : 'bad'}>
+            {replay.reproduced ? '✓' : '✕'} Re-running the moves against that seed reproduces
+            this exact result
+          </li>
+        </ul>
+        <p className="rp__note">
+          This replay is not a recording. The server re-ran the battle engine from the seed and
+          the players' choices — if either had been altered afterwards, the outcome above would
+          not match.
+          {replay.forced && ' This match ended by forfeit, which is decided outside the rules.'}
+        </p>
+        <div className="rp__hashes">
+          <div>
+            <span>Commitment</span>
+            <code>{replay.seedHash}</code>
           </div>
-        </div>
-
-        <div className="card rp__verify">
-          <div className="eyebrow">Verification</div>
-          <ul className="rp__checks">
-            <li className={replay.seedVerified ? 'ok' : 'bad'}>
-              {replay.seedVerified ? '✓' : '✕'} Seed matches the commitment published before the
-              first turn
-            </li>
-            <li className={replay.reproduced ? 'ok' : 'bad'}>
-              {replay.reproduced ? '✓' : '✕'} Re-running the moves against that seed reproduces
-              this exact result
-            </li>
-          </ul>
-          <p className="rp__note">
-            This replay is not a recording. The server re-ran the battle engine from the seed and
-            the players' choices — if either had been altered afterwards, the outcome above would
-            not match.
-            {replay.forced && ' This match ended by forfeit, which is decided outside the rules.'}
-          </p>
-          <div className="rp__hashes">
-            <div>
-              <span>Commitment</span>
-              <code>{replay.seedHash}</code>
-            </div>
-            <div>
-              <span>Seed</span>
-              <code>{replay.seed}</code>
-            </div>
+          <div>
+            <span>Seed</span>
+            <code>{replay.seed}</code>
           </div>
         </div>
       </div>

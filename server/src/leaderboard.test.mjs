@@ -65,6 +65,22 @@ function user(a, name) {
   assert.ok(row, `user ${a} was not created`)
 }
 
+/** A tournament bracket match: a battle linked from a tournament_matches row,
+ *  which the leaderboard treats as "ranked" (uncapped), like a wager. */
+let tmSeq = 0
+function tournamentBattle(winnerAddr, loserAddr) {
+  const id = randomUUID()
+  db.prepare(`
+    INSERT INTO battles (id, wager_id, p0, p1, seed, seed_hash, started_at, winner, ended_at)
+    VALUES (?, NULL, ?, ?, 'seed', 'hash', 0, 0, 1)
+  `).run(id, winnerAddr, loserAddr)
+  db.prepare(`
+    INSERT INTO tournament_matches (id, tournament_id, round, slot, p0, p1, battle_id, winner, status)
+    VALUES (?, 1, 0, ?, ?, ?, ?, ?, 'done')
+  `).run(9000 + tmSeq, tmSeq, winnerAddr, loserAddr, id, winnerAddr)
+  tmSeq++
+}
+
 /** The exact query the endpoint runs. */
 const leaderboard = () =>
   db.prepare(`
@@ -73,21 +89,23 @@ const leaderboard = () =>
              CASE WHEN b.winner = 0 THEN b.p1 ELSE b.p0 END AS beaten,
              CASE WHEN EXISTS (
                SELECT 1 FROM wagers w WHERE w.id = b.wager_id AND w.stake_wei != '0'
-             ) THEN 1 ELSE 0 END AS paid
+             ) OR EXISTS (
+               SELECT 1 FROM tournament_matches tm WHERE tm.battle_id = b.id
+             ) THEN 1 ELSE 0 END AS ranked
       FROM battles b
       WHERE b.ended_at IS NOT NULL AND b.winner IS NOT NULL
         AND b.p0 != :bot AND b.p1 != :bot
     ),
     pairs AS (
-      SELECT victor AS player, beaten AS foe, paid, COUNT(*) AS n, 1 AS won FROM decided
-      GROUP BY victor, beaten, paid
+      SELECT victor AS player, beaten AS foe, ranked, COUNT(*) AS n, 1 AS won FROM decided
+      GROUP BY victor, beaten, ranked
       UNION ALL
-      SELECT beaten AS player, victor AS foe, paid, COUNT(*) AS n, 0 AS won FROM decided
-      GROUP BY beaten, victor, paid
+      SELECT beaten AS player, victor AS foe, ranked, COUNT(*) AS n, 0 AS won FROM decided
+      GROUP BY beaten, victor, ranked
     ),
     capped AS (
-      SELECT player, foe, won, paid,
-             CASE WHEN paid = 1 THEN n ELSE MIN(n, :cap) END AS n
+      SELECT player, foe, won, ranked,
+             CASE WHEN ranked = 1 THEN n ELSE MIN(n, :cap) END AS n
       FROM pairs
     ),
     totals AS (
@@ -95,8 +113,8 @@ const leaderboard = () =>
              SUM(CASE WHEN won = 1 THEN n ELSE 0 END) AS wins,
              SUM(CASE WHEN won = 0 THEN n ELSE 0 END) AS losses,
              COUNT(DISTINCT foe) AS opponents,
-             COUNT(DISTINCT CASE WHEN paid = 0 THEN foe END) AS free_opponents,
-             SUM(CASE WHEN paid = 1 THEN n ELSE 0 END) AS paid_played
+             COUNT(DISTINCT CASE WHEN ranked = 0 THEN foe END) AS free_opponents,
+             SUM(CASE WHEN ranked = 1 THEN n ELSE 0 END) AS ranked_played
       FROM capped GROUP BY player
     )
     SELECT t.address, u.name, t.wins, t.losses, t.opponents,
@@ -105,7 +123,7 @@ const leaderboard = () =>
                 ELSE CAST(t.wins AS REAL) / (t.wins + t.losses) END AS winrate
     FROM totals t
     LEFT JOIN users u ON u.address = t.address
-    WHERE t.paid_played > 0 OR t.free_opponents >= :minOpponents
+    WHERE t.ranked_played > 0 OR t.free_opponents >= :minOpponents
     ORDER BY t.wins DESC, winrate DESC, t.losses ASC
     LIMIT 100
   `).all({ bot: BOT, cap: CAP, minOpponents: MIN_OPPONENTS })
@@ -138,6 +156,26 @@ check('an honest player with three distinct opponents does rank', () => {
   assert.ok(row, 'honest player missing from the board')
   assert.strictEqual(row.wins, 3)
   assert.strictEqual(row.opponents, 3)
+})
+
+check('tournament matches are ranked: uncapped AND rank on their own', () => {
+  const champ = addr(20)
+  const rival = addr(21)
+  user(champ, 'champ')
+  user(rival, 'rival')
+  // A parent tournament row so the bracket-match FK is satisfied.
+  db.prepare(`
+    INSERT OR IGNORE INTO tournaments (id, name, created_by, entry_fee_wei, max_players, status, created_at)
+    VALUES (1, 'Cup', ?, '0', 8, 'finished', 0)
+  `).run(champ)
+  // Ten bracket wins against ONE rival — a farm if it were free play, but
+  // tournament matches are ranked, so all ten count and champ is on the board
+  // despite having only a single distinct opponent.
+  for (let i = 0; i < 10; i++) tournamentBattle(champ, rival)
+  const row = leaderboard().find((r) => r.address === champ)
+  assert.ok(row, 'tournament player did not rank')
+  assert.strictEqual(row.wins, 10, 'tournament wins were capped like free play')
+  assert.strictEqual(row.opponents, 1)
 })
 
 check('the farmer stays behind even after reaching the opponent minimum', () => {

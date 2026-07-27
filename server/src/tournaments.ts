@@ -33,6 +33,7 @@ export type TournamentRow = {
   fee_bps: number | null
   settled_onchain: number | null
   start_at: number | null
+  prize_usd_cents: number | null
 }
 
 export type MatchRow = {
@@ -85,6 +86,18 @@ export const matchesOf = (id: number) =>
     'SELECT * FROM tournament_matches WHERE tournament_id = ? ORDER BY round, slot',
   ).all(id) as MatchRow[]
 
+/** Top tournament winners, for the "Champions" board. Hidden-wallet masking is
+ *  applied by the caller (this returns the raw address + hide flag). */
+export function champions(limit = 20) {
+  return db.prepare(`
+    SELECT address, name, COALESCE(hide_wallet, 0) AS hide_wallet, tournament_wins
+    FROM users
+    WHERE tournament_wins > 0
+    ORDER BY tournament_wins DESC, name IS NULL, name
+    LIMIT ?
+  `).all(limit) as { address: string; name: string | null; hide_wallet: number; tournament_wins: number }[]
+}
+
 /* ------------------------------------------------------------------ */
 /* lifecycle                                                           */
 /* ------------------------------------------------------------------ */
@@ -98,11 +111,22 @@ export function create(opts: {
   onchainId?: string | null
   /** Unix time sign-ups close and the bracket auto-starts. Null = manual start. */
   startAt?: number | null
+  /** An optional prize (US cents) paid by hand on top of the pot. Null = none. */
+  prizeUsdCents?: number | null
 }): { id: number } | { error: string } {
   const name = opts.name.trim()
   if (name.length < 3 || name.length > 40) return { error: 'Name must be 3–40 characters.' }
   if (!Number.isInteger(opts.maxPlayers) || opts.maxPlayers < MIN_PLAYERS || opts.maxPlayers > MAX_PLAYERS) {
     return { error: `Size must be between ${MIN_PLAYERS} and ${MAX_PLAYERS}.` }
+  }
+
+  let prizeUsdCents: number | null = null
+  if (opts.prizeUsdCents != null) {
+    // Cap at $1,000,000 so a fat-fingered entry can't render as a nonsense pool.
+    if (!Number.isInteger(opts.prizeUsdCents) || opts.prizeUsdCents < 0 || opts.prizeUsdCents > 100_000_000) {
+      return { error: 'Prize must be a dollar amount between $0 and $1,000,000.' }
+    }
+    prizeUsdCents = opts.prizeUsdCents || null
   }
 
   let startAt: number | null = null
@@ -144,9 +168,9 @@ export function create(opts: {
   }
 
   const info = db.prepare(
-    `INSERT INTO tournaments (name, created_by, entry_fee_wei, max_players, status, created_at, onchain_id, start_at)
-     VALUES (?, ?, ?, ?, 'open', ?, ?, ?)`,
-  ).run(name, opts.createdBy, fee.toString(), opts.maxPlayers, now(), onchainId, startAt)
+    `INSERT INTO tournaments (name, created_by, entry_fee_wei, max_players, status, created_at, onchain_id, start_at, prize_usd_cents)
+     VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?)`,
+  ).run(name, opts.createdBy, fee.toString(), opts.maxPlayers, now(), onchainId, startAt, prizeUsdCents)
 
   return { id: Number(info.lastInsertRowid) }
 }
@@ -316,6 +340,10 @@ export function recordWinner(
   if (!next) {
     db.prepare("UPDATE tournaments SET status = 'finished', winner = ?, ended_at = ? WHERE id = ?")
       .run(winner, now(), id)
+    // The champion earns a tournament title — a separate tally from battle wins,
+    // ranked on its own "Champions" board.
+    db.prepare('UPDATE users SET tournament_wins = tournament_wins + 1 WHERE address = ?')
+      .run(winner.toLowerCase())
     return
   }
 

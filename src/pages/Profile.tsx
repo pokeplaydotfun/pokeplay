@@ -137,6 +137,12 @@ export default function Profile() {
         {/* -------- headline stats -------- */}
         <div className="profile__hero">
           <StatTile label="Games played" value={String(played)} />
+          <StatTile
+            label="Tournaments won"
+            value={String(stats?.tournamentWins ?? 0)}
+            champion
+            title="Tournament titles won"
+          />
           <StatTile label="Won" value={String(me.wins)} tone="up" />
           <StatTile label="Lost" value={String(me.losses)} tone="down" />
           <StatTile label="Win rate" value={winrate === null ? '—' : `${winrate}%`} />
@@ -316,15 +322,19 @@ function StatTile({
   value,
   tone,
   title,
+  champion,
 }: {
   label: string
   value: string
   tone?: 'up' | 'down'
   title?: string
+  /** A special gold trophy tile, for the tournament-titles count. */
+  champion?: boolean
 }) {
   return (
-    <div className="profile__tile" title={title}>
+    <div className={`profile__tile${champion ? ' profile__tile--champion' : ''}`} title={title}>
       <div className={`profile__tile-value${tone ? ` profile__tile-value--${tone}` : ''}`}>
+        {champion && <span className="profile__tile-trophy" aria-hidden="true">🏆</span>}
         {value}
       </div>
       <div className="profile__tile-label">{label}</div>

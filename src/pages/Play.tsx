@@ -8,6 +8,7 @@ import { BattleView } from './Battle'
 import { WagerBoard } from './Wagers'
 import { UnclaimedPots } from '../components/UnclaimedPots'
 import { QuickMatch } from '../components/QuickMatch'
+import { LiveBattles } from '../components/LiveBattles'
 import '../styles/play.css'
 
 type Opponent = {
@@ -344,6 +345,9 @@ export default function Play() {
 
         {/* Money you have won but not collected comes before anything else. */}
         <UnclaimedPots signedIn={signedIn} />
+
+        {/* Matches in progress right now — anyone can drop in and watch. */}
+        <LiveBattles />
 
         {/* Connecting is handled by the header; only signing in is prompted here. */}
         {!signedIn && isConnected && (

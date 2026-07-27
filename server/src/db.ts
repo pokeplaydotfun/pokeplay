@@ -132,6 +132,12 @@ addColumn('battles', 'p1_team', 'TEXT')
 addColumn('battles', 'steps', 'TEXT')
 addColumn('battles', 'forced', 'INTEGER')
 
+// Which battle engine version played this match, so a replay re-derives on the
+// SAME engine — a match played on v1 must not be re-run on v2, or it would fail
+// its own reproduction check and break the provably-fair guarantee. Null on rows
+// created before this column existed; replay falls back to trying both for those.
+addColumn('battles', 'engine', 'INTEGER')
+
 // The fee in force when a wager settled, so profit/loss stays correct even if
 // the contract's fee is changed later. Null until a paid wager settles.
 addColumn('wagers', 'fee_bps', 'INTEGER')
@@ -164,6 +170,18 @@ addColumn('tournaments', 'settled_onchain', 'INTEGER')
 // scheduler starts any open tournament whose start_at has passed with >= 2
 // players in, and this can be pushed out later with an "extend".
 addColumn('tournaments', 'start_at', 'INTEGER')
+
+// How many whole tournaments this player has WON (been the champion of). A
+// separate tally from `wins` (individual battle wins), so a "Champions" board
+// can rank by titles. Incremented once when a tournament finishes.
+addColumn('users', 'tournament_wins', 'INTEGER NOT NULL DEFAULT 0')
+
+// An optional prize the organiser adds ON TOP of the entry pot, denominated in
+// US cents (the value is set in dollars; the UI shows the ETH equivalent at the
+// live rate). Null = no added prize. This prize is ALWAYS paid out by hand — the
+// on-chain entry payout (winner-take-all of the pot, for paid tournaments) is
+// unchanged. The winner's address is stored in `tournaments.winner` for payout.
+addColumn('tournaments', 'prize_usd_cents', 'INTEGER')
 
 // Case-insensitive uniqueness, enforced by the database rather than by a
 // check-then-insert in the handler: two people claiming the same name at the

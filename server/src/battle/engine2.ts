@@ -925,3 +925,32 @@ export function publicState(b: Battle2, viewer: 0 | 1) {
     foe: { active: b.sides[foe].active, team: b.sides[foe].team },
   }
 }
+
+/**
+ * What a spectator — someone who is not one of the two players — is allowed to
+ * see. Both sides are shown as the same public projection the opponent already
+ * gets (species, exact HP, status, boosts, ability), with NO move list or PP on
+ * either side, since a watcher must never learn what either player can throw.
+ * Sides are absolute (`p0`/`p1`) because a spectator has no "you"; the client
+ * labels each with its trainer's name.
+ */
+export function spectatorState(b: Battle2) {
+  const weather = (b.sim as unknown as { field?: { weather?: string } }).field?.weather
+  return {
+    turn: b.turn,
+    weather: WEATHER_MAP[toSimId(String(weather ?? 'none'))] ?? null,
+    finished: b.finished,
+    winner: b.winner,
+    p0: { active: b.sides[0].active, team: b.sides[0].team },
+    p1: { active: b.sides[1].active, team: b.sides[1].team },
+  }
+}
+
+/**
+ * The last drained lines narrated neutrally, for a spectator's log. Same events
+ * a replay uses — every Pokémon named plainly, each line tagged with the
+ * absolute side (0/1) it is about so the client can label it by trainer.
+ */
+export function spectatorEvents(b: Battle2, lines?: string[]): BattleEvent[] {
+  return translate(b, lines ?? b.lastRaw)
+}

@@ -21,39 +21,43 @@
 .bt-console {
   max-width: 1240px;
   margin: 0 auto;
-  background: #10131b;
-  border: 1px solid #232838;
-  border-radius: 16px;
-  padding: 14px;
-  color: #fff;
-  font-family: system-ui, -apple-system, sans-serif;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  color: var(--ink);
+  font-family: var(--body);
+  box-shadow: var(--shadow-md);
 }
 
-/* ---- top bar: stake title + turn clock ---- */
+/* ---- top bar: stake title (centred) + turn clock (right) ---- */
 .bt-topbar {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 2px 6px 12px;
+  text-align: center;
+  gap: 2px;
+  padding: 2px 6px 14px;
 }
 .bt-topbar__eyebrow {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #8a93a8;
+  color: var(--faint);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
-.bt-topbar__eyebrow a { color: #b9c2d6; }
+.bt-topbar__eyebrow a { color: var(--muted); }
 .bt-topbar__title {
+  font-family: var(--display);
   font-weight: 700;
   font-size: clamp(1.1rem, 2.4vw, 1.5rem);
   letter-spacing: -0.01em;
-  margin-top: 3px;
-  color: #fff;
+  margin-top: 2px;
+  color: var(--ink);
 }
 
 .bt-frame { display: flex; flex-direction: column; }
@@ -87,18 +91,21 @@
   display: flex;
   align-items: stretch;
   gap: 0;
-  height: 388px; /* stage 380 + window top/bottom border */
+  height: 388px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .bt-log {
   flex: 0 0 300px;
   display: flex;
   flex-direction: column;
-  background: rgba(8, 11, 17, 0.92);
-  border: 2px solid #2a2f3a;
+  background: var(--cream);
+  border-right: 1px solid var(--line);
   box-sizing: border-box;
   padding: 12px 14px;
-  color: #fff;
+  color: var(--ink);
 }
 .bt-log-lines {
   flex: 1;
@@ -112,51 +119,52 @@
   line-height: 1.35;
 }
 .bt-log-lines::-webkit-scrollbar { width: 6px; }
-.bt-log-lines::-webkit-scrollbar-thumb { background: #33394a; border-radius: 3px; }
-/* Attributed by actor: you = teal / left, opponent = red / right (matching the
-   VS banner), neutral effects = centred & muted — so who did what is obvious. */
-.bt-log-line { color: #e7ecf5; max-width: 92%; padding: 2px 9px; border-radius: 7px; }
+.bt-log-lines::-webkit-scrollbar-thumb { background: #d8d2c6; border-radius: 3px; }
+/* Attributed by actor: you = green / left, opponent = red / right (the site's
+   own chip colours), neutral effects = centred & muted — so who did what is
+   obvious at a glance. */
+.bt-log-line { color: var(--muted); max-width: 92%; padding: 2px 9px; border-radius: 7px; }
 .bt-log-line.me {
-  align-self: flex-start; text-align: left; color: #d6f6f3;
-  border-left: 3px solid #38c9c1; background: rgba(56, 201, 193, 0.12);
+  align-self: flex-start; text-align: left; color: #1f7a45;
+  border-left: 3px solid #46b877; background: #e9f5ee;
 }
 .bt-log-line.foe {
-  align-self: flex-end; text-align: right; color: #ffe0dc;
-  border-right: 3px solid #f0655a; background: rgba(240, 101, 90, 0.12);
+  align-self: flex-end; text-align: right; color: #b02a20;
+  border-right: 3px solid var(--red); background: var(--red-soft);
 }
 .bt-log-line:not(.me):not(.foe) {
-  align-self: center; text-align: center; color: #aab2c2; font-style: italic;
+  align-self: center; text-align: center; color: var(--faint); font-style: italic;
 }
-.bt-log-faint { align-self: center; color: #6b7488; font-style: italic; }
+.bt-log-faint { align-self: center; color: var(--faint); font-style: italic; }
 .bt-log-prompt {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid #2a2f3a;
+  border-top: 1px solid var(--line);
   min-height: 22px;
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--ink);
   transition: color 0.15s, border-color 0.15s;
 }
 /* The live narration line takes the actor's colour + a matching edge — the same
-   teal (you) / red (opponent) split the log uses — so the current move reads at
+   green (you) / red (opponent) split the log uses — so the current move reads at
    a glance without waiting for it to scroll into the log above. */
 .bt-log-prompt.p-me {
-  color: #8ff0e8;
-  border-left: 3px solid #38c9c1;
+  color: #1f7a45;
+  border-left: 3px solid #46b877;
   padding-left: 9px;
   margin-left: -12px;
 }
 .bt-log-prompt.p-foe {
-  color: #ffb0a8;
-  border-left: 3px solid #f0655a;
+  color: #b02a20;
+  border-left: 3px solid var(--red);
   padding-left: 9px;
   margin-left: -12px;
 }
 .bt-log-foot {
   margin-top: 8px;
   font-size: 0.66rem;
-  color: #5c657a;
+  color: var(--faint);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   word-break: break-all;
 }
@@ -167,9 +175,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border: 4px solid #f3f1ea;
   box-sizing: border-box;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
 }
 .bt-stage {
   position: relative;
@@ -418,15 +424,15 @@
 .bt-idle i:nth-child(3) { animation-delay: .3s; }
 @keyframes bt-dot { 0%, 100% { opacity: .3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
 
-/* ---- turn clock ring (top bar) ---- */
-.bt-timer { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
+/* ---- turn clock ring (absolute top-right, so the title stays centred) ---- */
+.bt-timer { position: absolute; right: 4px; top: 0; width: 50px; height: 50px; }
 .bt-timer__ring { width: 100%; height: 100%; transform: rotate(-90deg); }
 .bt-timer__track, .bt-timer__value { fill: none; stroke-width: 3; }
-.bt-timer__track { stroke: #2a3040; }
-.bt-timer__value { stroke: #fff; stroke-linecap: round; transition: stroke-dasharray 0.25s linear; }
-.bt-timer--urgent .bt-timer__value { stroke: #f0655a; }
-.bt-timer__num { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; font-size: 1rem; color: #fff; }
-.bt-timer--urgent .bt-timer__num { color: #f0655a; }
+.bt-timer__track { stroke: var(--line); }
+.bt-timer__value { stroke: var(--ink); stroke-linecap: round; transition: stroke-dasharray 0.25s linear; }
+.bt-timer--urgent .bt-timer__value { stroke: var(--red); }
+.bt-timer__num { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 1rem; color: var(--ink); }
+.bt-timer--urgent .bt-timer__num { color: var(--red); }
 
 /* ---- overlays on the stage: opponent-gone / error / result ---- */
 .bt-overlay {
@@ -445,33 +451,46 @@
 .bt-overlay--warn { background: #3a2f16; color: #ffe1a6; border: 1px solid #6b5320; }
 .bt-overlay--error { background: #3a1b18; color: #ffc9c2; border: 1px solid #6b2b25; }
 
+/* Result = a clean light card on a soft scrim over the frozen arena. */
 .bt-result {
   position: absolute;
   inset: 0;
   z-index: 9;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  text-align: center;
-  padding: 20px;
-  background: rgba(8, 11, 17, 0.82);
-  backdrop-filter: blur(3px);
+  padding: 18px;
+  background: rgba(20, 26, 20, 0.42);
+  backdrop-filter: blur(2px);
   overflow-y: auto;
 }
-.bt-result__title { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
-.bt-result--win .bt-result__title { color: #7ee0a0; }
-.bt-result--loss .bt-result__title { color: #ff8478; }
-.bt-result--draw .bt-result__title { color: #e8d48a; }
-.bt-result__body { color: #cbd3e2; font-size: 0.92rem; max-width: 460px; }
-.bt-result__actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
-.bt-verify { margin-top: 6px; font-size: 0.8rem; max-width: 460px; color: #aeb7c8; }
-.bt-verify summary { cursor: pointer; font-weight: 600; color: #cbd3e2; }
-.bt-verify p { margin-top: 8px; }
-.bt-verify__row { display: flex; gap: 10px; margin-top: 8px; align-items: baseline; text-align: left; }
-.bt-verify__row span { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: #7a8296; flex-shrink: 0; width: 92px; }
-.bt-verify__row code { font-size: 0.68rem; word-break: break-all; color: #9aa3b6; }
+.bt-result__card {
+  width: min(100%, 420px);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 24px 26px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bt-result__title { font-family: var(--display); font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.bt-result--win .bt-result__title { color: #1f8a4c; }
+.bt-result--loss .bt-result__title { color: var(--red); }
+.bt-result--draw .bt-result__title { color: var(--gold); }
+.bt-result__body { color: var(--muted); font-size: 0.92rem; }
+.bt-result__actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+.bt-result__actions .btn { flex: 1; min-width: 150px; }
+/* the ghost button inherits the card's ink text (never white-on-white) */
+.bt-result__actions .btn--ghost { color: var(--ink); }
+.bt-verify { margin-top: 12px; font-size: 0.8rem; color: var(--muted); text-align: left; border-top: 1px solid var(--line); padding-top: 12px; }
+.bt-verify summary { cursor: pointer; font-weight: 600; color: var(--ink); text-align: center; }
+.bt-verify p { margin-top: 8px; color: var(--muted); }
+.bt-verify__row { display: flex; gap: 10px; margin-top: 8px; align-items: baseline; }
+.bt-verify__row span { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); flex-shrink: 0; width: 92px; }
+.bt-verify__row code { font-size: 0.68rem; word-break: break-all; color: var(--muted); }
 
 /* out-of-PP note that floats above the move grid */
 .bt-ppwarn {
@@ -491,7 +510,8 @@
 
 @media (max-width: 900px) {
   .bt-main { flex-direction: column; height: auto; }
-  .bt-log { flex: 0 0 auto; order: 2; height: 150px; border-top: none; }
+  /* stacked: log sits BELOW the arena, so its divider moves to the top edge */
+  .bt-log { flex: 0 0 auto; order: 2; height: 150px; border-right: none; border-top: 1px solid var(--line); }
   .bt-window { order: 1; }
   .bt-stage { height: 340px; }
   /* the log lines list is short on mobile — keep newest visible */

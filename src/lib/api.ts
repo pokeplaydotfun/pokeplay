@@ -158,6 +158,16 @@ export type LeaderRow = {
   netWei: string
   played: number
   winrate: number
+  /** Tournament titles won — a separate tally from ranked battle wins. */
+  tournamentWins?: number
+}
+
+/** One row of the Champions board: most tournament titles won. */
+export type Champion = {
+  address: string
+  name: string | null
+  hidden?: boolean
+  wins: number
 }
 
 export type LeaderRules = { rivalCap: number; minOpponents: number }
@@ -187,6 +197,8 @@ export type MeStats = {
   stakedWei: string
   /** Number of settled paid wagers. */
   paidGames: number
+  /** Tournament titles won. */
+  tournamentWins?: number
 }
 
 /** One finished match in the profile's battle history. */
@@ -232,6 +244,18 @@ export const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
  */
 export const fromUnix = (seconds: number) => new Date(seconds * 1000)
 
+/** A unix time as a short, local, human date+time, e.g. "Sat, Jul 26, 3:00 PM". */
+export const formatStart = (seconds: number) =>
+  new Date(seconds * 1000).toLocaleString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  })
+
+/** A Date as the `value` a <input type="datetime-local"> expects (local time). */
+export const toLocalInput = (d: Date) => {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 /** Wei string -> a short ETH string, without pulling in a bignum library. */
 export function formatEth(wei: string): string {
   const v = BigInt(wei || '0')
@@ -258,6 +282,28 @@ export function formatSignedEth(wei: string): string {
   }
   if (v === 0n) return '—'
   return `${v > 0n ? '+' : '−'}${formatEth((v < 0n ? -v : v).toString())}`
+}
+
+/** US cents → a clean dollar string: "$500" or "$1,250.50". */
+export function formatUsd(cents: number): string {
+  const dollars = cents / 100
+  const hasCents = Math.round(dollars * 100) % 100 !== 0
+  return `$${dollars.toLocaleString(undefined, {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  })}`
+}
+
+/** A dollar amount (US cents) at a given ETH/USD rate → ETH, or null with no rate. */
+export function usdCentsToEth(cents: number, ethUsd: number | null): number | null {
+  return ethUsd && ethUsd > 0 ? cents / 100 / ethUsd : null
+}
+
+/** A plain ETH number → a trimmed string, e.g. "0.1667" / "2.5" / "0". */
+export function formatEthAmount(eth: number): string {
+  if (!Number.isFinite(eth) || eth === 0) return '0'
+  const digits = eth < 0.01 ? 5 : eth < 1 ? 4 : 3
+  return eth.toFixed(digits).replace(/\.?0+$/, '')
 }
 
 export function parseEth(input: string): string {

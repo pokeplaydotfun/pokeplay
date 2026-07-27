@@ -17,7 +17,7 @@ import {
 import {
   createRoom, roomForPlayer, getRoom, attachSocket, detachSocket, submitAction,
   sweepDisconnects, setEndHook, activeRoomCount, ensureBotUser, BOT_ADDRESS,
-  TURN_SECONDS, type Room,
+  TURN_SECONDS, addSpectator, removeSpectator, liveBattles, type Room,
 } from './rooms.js'
 import { OPPONENTS, getOpponent, buildOpponents } from './battle/opponents.js'
 import { checkUsername } from './username.js'
@@ -32,6 +32,7 @@ import {
   tournamentStatus, tournamentFeeBps,
 } from './settle-tournament.js'
 import { buildReplay } from './replay.js'
+import { startPriceFeed, ethUsd } from './price.js'
 
 const PORT = Number(process.env.PORT ?? 8090)
 /**
@@ -239,8 +240,8 @@ app.post('/api/me/privacy', requireAuth, (req, res) => {
  */
 app.get('/api/me/stats', requireAuth, (req, res) => {
   const me = addrOf(req)
-  const u = db.prepare('SELECT wins, losses, draws FROM users WHERE address = ?')
-    .get(me) as { wins: number; losses: number; draws: number } | undefined
+  const u = db.prepare('SELECT wins, losses, draws, tournament_wins FROM users WHERE address = ?')
+    .get(me) as { wins: number; losses: number; draws: number; tournament_wins: number } | undefined
   const wins = u?.wins ?? 0
   const losses = u?.losses ?? 0
   const draws = u?.draws ?? 0
@@ -268,6 +269,7 @@ app.get('/api/me/stats', requireAuth, (req, res) => {
     wins,
     losses,
     draws,
+    tournamentWins: u?.tournament_wins ?? 0,
     winrate: wins + losses > 0 ? wins / (wins + losses) : 0,
     netWei: (realisedPnl().get(me) ?? 0n).toString(),
     stakedWei: stakedWei.toString(),
@@ -630,6 +632,23 @@ function publicIdentity(addr: string): { address: string | null; name: string | 
   return { address: hidden ? null : addr, name: u?.name ?? null, hidden }
 }
 
+/**
+ * How an address should appear inside a tournament view. Same rule as
+ * publicIdentity — a wallet the owner chose to hide is withheld — with one
+ * exception: a viewer always sees their OWN address, so a hidden champion still
+ * matches themselves and gets the prize-claim panel on their own page.
+ */
+function maskInTournament(
+  addr: string,
+  viewer: string | null,
+): { address: string | null; name: string | null; hidden: boolean } {
+  const id = publicIdentity(addr)
+  if (id.hidden && viewer && addr.toLowerCase() === viewer.toLowerCase()) {
+    return { address: addr, name: id.name, hidden: true }
+  }
+  return id
+}
+
 app.get('/api/battle/:id', (req, res) => {
   const row = db.prepare(`
     SELECT id, p0, p1, winner, seed, seed_hash, started_at, ended_at
@@ -675,6 +694,50 @@ app.get('/api/replay/:id', (req, res) => {
 })
 
 /**
+ * Every match currently in progress that a spectator can watch (practice
+ * matches excluded). Public: it exposes only the identities the leaderboard and
+ * wager board already show — a hidden wallet is masked to its username — plus
+ * the stake and turn number, never any private battle state.
+ */
+app.get('/api/live', (_req, res) => {
+  const matchRow = db.prepare('SELECT tournament_id FROM tournament_matches WHERE id = ?')
+  const tourName = db.prepare('SELECT name FROM tournaments WHERE id = ?')
+
+  const battles = liveBattles().map((b) => {
+    const [i0, i1] = [publicIdentity(b.p0), publicIdentity(b.p1)]
+    let tournament: { id: number; name: string } | null = null
+    if (b.tournamentMatchId !== null) {
+      const m = matchRow.get(b.tournamentMatchId) as { tournament_id: number } | undefined
+      if (m) {
+        const t = tourName.get(m.tournament_id) as { name: string } | undefined
+        tournament = { id: m.tournament_id, name: t?.name ?? 'Tournament' }
+      }
+    }
+    return {
+      roomId: b.roomId,
+      p0: i0.address, p0Name: i0.name, p0Hidden: i0.hidden,
+      p1: i1.address, p1Name: i1.name, p1Hidden: i1.hidden,
+      turn: b.turn,
+      stakeWei: b.stakeWei,
+      wagerId: b.wagerId,
+      tournament,
+      spectators: b.spectators,
+      startedAt: b.startedAt,
+    }
+  })
+
+  // Highest-stake matches first (the ones worth watching), then the newest.
+  battles.sort((a, z) => {
+    const sa = BigInt(a.stakeWei || '0')
+    const sz = BigInt(z.stakeWei || '0')
+    if (sa !== sz) return sa > sz ? -1 : 1
+    return z.startedAt - a.startedAt
+  })
+
+  res.json({ battles })
+})
+
+/**
  * How many wins over the SAME opponent count, IN FREE PLAY ONLY.
  *
  * Free matches cost nothing, so two accounts in two tabs can trade wins as fast
@@ -704,26 +767,29 @@ app.get('/api/leaderboard', (_req, res) => {
     WITH decided AS (
       SELECT CASE WHEN b.winner = 0 THEN b.p0 ELSE b.p1 END AS victor,
              CASE WHEN b.winner = 0 THEN b.p1 ELSE b.p0 END AS beaten,
-             -- A staked match. These are exempt from the rival cap.
+             -- "Ranked" = a competitive game that counts in full and is exempt
+             -- from the rival cap: a staked wager, OR a tournament bracket match.
              CASE WHEN EXISTS (
                SELECT 1 FROM wagers w
                WHERE w.id = b.wager_id AND w.stake_wei != '0'
-             ) THEN 1 ELSE 0 END AS paid
+             ) OR EXISTS (
+               SELECT 1 FROM tournament_matches tm WHERE tm.battle_id = b.id
+             ) THEN 1 ELSE 0 END AS ranked
       FROM battles b
       WHERE b.ended_at IS NOT NULL AND b.winner IS NOT NULL
         AND b.p0 != :bot AND b.p1 != :bot
     ),
     pairs AS (
-      SELECT victor AS player, beaten AS foe, paid, COUNT(*) AS n, 1 AS won FROM decided
-      GROUP BY victor, beaten, paid
+      SELECT victor AS player, beaten AS foe, ranked, COUNT(*) AS n, 1 AS won FROM decided
+      GROUP BY victor, beaten, ranked
       UNION ALL
-      SELECT beaten AS player, victor AS foe, paid, COUNT(*) AS n, 0 AS won FROM decided
-      GROUP BY beaten, victor, paid
+      SELECT beaten AS player, victor AS foe, ranked, COUNT(*) AS n, 0 AS won FROM decided
+      GROUP BY beaten, victor, ranked
     ),
     capped AS (
-      -- Free results are capped per opponent; staked ones count in full.
-      SELECT player, foe, won, paid,
-             CASE WHEN paid = 1 THEN n ELSE MIN(n, :cap) END AS n
+      -- Ranked results count in full; casual free ones are capped per opponent.
+      SELECT player, foe, won, ranked,
+             CASE WHEN ranked = 1 THEN n ELSE MIN(n, :cap) END AS n
       FROM pairs
     ),
     totals AS (
@@ -731,8 +797,8 @@ app.get('/api/leaderboard', (_req, res) => {
              SUM(CASE WHEN won = 1 THEN n ELSE 0 END) AS wins,
              SUM(CASE WHEN won = 0 THEN n ELSE 0 END) AS losses,
              COUNT(DISTINCT foe) AS opponents,
-             COUNT(DISTINCT CASE WHEN paid = 0 THEN foe END) AS free_opponents,
-             SUM(CASE WHEN paid = 1 THEN n ELSE 0 END) AS paid_played
+             COUNT(DISTINCT CASE WHEN ranked = 0 THEN foe END) AS free_opponents,
+             SUM(CASE WHEN ranked = 1 THEN n ELSE 0 END) AS ranked_played
       FROM capped GROUP BY player
     )
     SELECT t.address,
@@ -740,14 +806,15 @@ app.get('/api/leaderboard', (_req, res) => {
            COALESCE(u.hide_wallet, 0) AS hide_wallet,
            t.wins, t.losses, t.opponents,
            COALESCE(u.draws, 0) AS draws,
+           COALESCE(u.tournament_wins, 0) AS tournamentWins,
            (t.wins + t.losses) AS played,
            CASE WHEN (t.wins + t.losses) = 0 THEN 0.0
                 ELSE CAST(t.wins AS REAL) / (t.wins + t.losses) END AS winrate
     FROM totals t
     LEFT JOIN users u ON u.address = t.address
-    -- Anyone who has staked real money is ranked; the distinct-opponent bar
-    -- exists only to stop free play being farmed.
-    WHERE t.paid_played > 0 OR t.free_opponents >= :minOpponents
+    -- A ranked game (wager or tournament match) puts you on the board; the
+    -- distinct-opponent bar exists only to stop casual free play being farmed.
+    WHERE t.ranked_played > 0 OR t.free_opponents >= :minOpponents
     ORDER BY t.wins DESC, winrate DESC, t.losses ASC
     LIMIT 100
   `).all({ bot: BOT_ADDRESS, cap: RIVAL_CAP, minOpponents: MIN_OPPONENTS }) as
@@ -755,7 +822,7 @@ app.get('/api/leaderboard', (_req, res) => {
 
   // Wei does not survive JSON as a number, so send it as a string.
   const pnl = realisedPnl()
-  res.json(rows.map((r) => {
+  const players = rows.map((r) => {
     const real = String(r.address)
     const hidden = Boolean(r.hide_wallet)
     const netWei = (pnl.get(real) ?? 0n).toString()
@@ -764,7 +831,15 @@ app.get('/api/leaderboard', (_req, res) => {
     // A private player still ranks and shows their record — only the address
     // is withheld, and it never leaves the server.
     return { ...rest, address: hidden ? '' : real, hidden, netWei }
-  }))
+  })
+
+  // The Champions board: most tournament titles won. Same privacy rule.
+  const champions = tour.champions(20).map((c) => {
+    const hidden = Boolean(c.hide_wallet)
+    return { name: c.name, address: hidden ? '' : c.address, hidden, wins: c.tournament_wins }
+  })
+
+  res.json({ players, champions })
 })
 
 /**
@@ -969,22 +1044,25 @@ app.get('/api/stats', (_req, res) => {
     WITH decided AS (
       SELECT CASE WHEN b.winner = 0 THEN b.p0 ELSE b.p1 END AS victor,
              CASE WHEN b.winner = 0 THEN b.p1 ELSE b.p0 END AS beaten,
+             -- Same "ranked" rule as /api/leaderboard: a wager or a tournament match.
              CASE WHEN EXISTS (
                SELECT 1 FROM wagers w WHERE w.id = b.wager_id AND w.stake_wei != '0'
-             ) THEN 1 ELSE 0 END AS paid
+             ) OR EXISTS (
+               SELECT 1 FROM tournament_matches tm WHERE tm.battle_id = b.id
+             ) THEN 1 ELSE 0 END AS ranked
       FROM battles b
       WHERE b.ended_at IS NOT NULL AND b.winner IS NOT NULL
         AND b.p0 != :bot AND b.p1 != :bot
     ),
     faced AS (
-      SELECT victor AS player, beaten AS foe, paid FROM decided
+      SELECT victor AS player, beaten AS foe, ranked FROM decided
       UNION ALL
-      SELECT beaten AS player, victor AS foe, paid FROM decided
+      SELECT beaten AS player, victor AS foe, ranked FROM decided
     )
     SELECT COUNT(*) AS n FROM (
       SELECT player FROM faced GROUP BY player
-      HAVING SUM(paid) > 0
-          OR COUNT(DISTINCT CASE WHEN paid = 0 THEN foe END) >= :minOpponents
+      HAVING SUM(ranked) > 0
+          OR COUNT(DISTINCT CASE WHEN ranked = 0 THEN foe END) >= :minOpponents
     )
   `).get({ bot: BOT_ADDRESS, minOpponents: MIN_OPPONENTS }) as { n: number }).n
   const openWagers = (db.prepare("SELECT COUNT(*) AS n FROM wagers WHERE status = 'open' AND expires_at > ?")
@@ -1008,7 +1086,10 @@ function tournamentView(id: number, viewer: string | null) {
   const entries = tour.entriesOf(id)
   const matches = tour.matchesOf(id)
 
-  const nameOf = new Map(entries.map((e) => [e.address, e.name]))
+  const isAdmin = viewer ? tour.isAdmin(viewer) : false
+  // A hidden champion's wallet is withheld from the public view; the admin still
+  // gets it (separately, below) because the manual prize payout needs it.
+  const winnerId = t.winner ? maskInTournament(t.winner, viewer) : null
   return {
     id: t.id,
     name: t.name,
@@ -1021,29 +1102,56 @@ function tournamentView(id: number, viewer: string | null) {
     maxPlayers: t.max_players,
     status: t.status,
     startAt: t.start_at,
-    winner: t.winner,
-    winnerName: t.winner ? nameOf.get(t.winner) ?? null : null,
+    winner: winnerId?.address ?? null,
+    winnerName: winnerId?.name ?? null,
+    winnerHidden: winnerId?.hidden ?? false,
+    // Whether a champion exists at all, independent of masking — the UI must not
+    // infer it from the (maskable) winner address, or a hidden champion would let
+    // beaten entrants reach the "no winner" timeout-refund escape hatch.
+    hasWinner: Boolean(t.winner),
+    // The real champion wallet, for the admin's manual prize payout only.
+    winnerPayout: isAdmin ? t.winner : null,
+    // An optional hand-paid prize (US cents) + the live rate to show it in ETH.
+    prizeUsdCents: t.prize_usd_cents,
+    ethUsd: ethUsd(),
     createdAt: t.created_at,
     startedAt: t.started_at,
     endedAt: t.ended_at,
-    players: entries.map((e) => ({ address: e.address, name: e.name, seed: e.seed })),
+    players: entries.map((e) => {
+      const pid = maskInTournament(e.address, viewer)
+      return { address: pid.address, name: pid.name, hidden: pid.hidden, seed: e.seed }
+    }),
     rounds: tour.roundCount(id),
-    matches: matches.map((m) => ({
-      id: m.id,
-      round: m.round,
-      slot: m.slot,
-      p0: m.p0,
-      p1: m.p1,
-      p0Name: m.p0 ? nameOf.get(m.p0) ?? null : null,
-      p1Name: m.p1 ? nameOf.get(m.p1) ?? null : null,
-      winner: m.winner,
-      status: m.status,
-      battleId: m.battle_id,
-    })),
+    matches: matches.map((m) => {
+      const s0 = m.p0 ? maskInTournament(m.p0, viewer) : null
+      const s1 = m.p1 ? maskInTournament(m.p1, viewer) : null
+      const w = m.winner ? maskInTournament(m.winner, viewer) : null
+      return {
+        id: m.id,
+        round: m.round,
+        slot: m.slot,
+        p0: s0?.address ?? null,
+        p1: s1?.address ?? null,
+        p0Name: s0?.name ?? null,
+        p1Name: s1?.name ?? null,
+        p0Hidden: s0?.hidden ?? false,
+        p1Hidden: s1?.hidden ?? false,
+        p0Filled: m.p0 != null,
+        p1Filled: m.p1 != null,
+        // Win/loss decided from the RAW addresses here, so the client can
+        // highlight the bracket without ever comparing (masked) wallets.
+        p0Won: m.winner != null && m.winner === m.p0,
+        p1Won: m.winner != null && m.winner === m.p1,
+        decided: m.winner != null,
+        winner: w?.address ?? null,
+        status: m.status,
+        battleId: m.battle_id,
+      }
+    }),
     you: viewer
       ? {
           entered: entries.some((e) => e.address === viewer),
-          isAdmin: tour.isAdmin(viewer),
+          isAdmin,
           playableMatchId: tour.playableFor(id, viewer)?.id ?? null,
         }
       : null,
@@ -1063,6 +1171,9 @@ app.get('/api/tournaments', (req, res) => {
   res.json({
     canCreate: viewer ? tour.isAdmin(viewer) : false,
     paidEntryAvailable: tour.paidEntryAvailable(),
+    // The live ETH/USD rate, so a dollar prize can be shown in ETH. Null if the
+    // ticker has not fetched yet — the UI then just omits the ETH figure.
+    ethUsd: ethUsd(),
     tournaments: rows.map((t) => ({
       id: t.id,
       name: t.name,
@@ -1071,8 +1182,11 @@ app.get('/api/tournaments', (req, res) => {
       players: t.players,
       status: t.status,
       startAt: t.start_at,
-      winner: t.winner,
+      // A hidden champion's wallet is withheld here too, though the list does not
+      // render it — the raw JSON must not carry it either.
+      winner: t.winner ? publicIdentity(t.winner).address : null,
       createdAt: t.created_at,
+      prizeUsdCents: t.prize_usd_cents,
     })),
   })
 })
@@ -1087,7 +1201,7 @@ app.post('/api/tournaments', requireAuth, rateLimit(20, 60, 'address'), (req, re
   const me = addrOf(req)
   if (!tour.isAdmin(me)) return res.status(403).json({ error: 'Not allowed.' })
 
-  const { name, maxPlayers, entryFeeWei, onchainId, startAt } = req.body ?? {}
+  const { name, maxPlayers, entryFeeWei, onchainId, startAt, prizeUsdCents } = req.body ?? {}
   const made = tour.create({
     name: String(name ?? ''),
     createdBy: me,
@@ -1095,6 +1209,7 @@ app.post('/api/tournaments', requireAuth, rateLimit(20, 60, 'address'), (req, re
     entryFeeWei: String(entryFeeWei ?? '0'),
     onchainId: onchainId != null ? String(onchainId) : null,
     startAt: startAt != null ? Number(startAt) : null,
+    prizeUsdCents: prizeUsdCents != null ? Number(prizeUsdCents) : null,
   })
   if ('error' in made) return res.status(400).json({ error: made.error })
   res.json(made)
@@ -1434,6 +1549,22 @@ const wss = new WebSocketServer({ server, path: '/ws' })
 
 wss.on('connection', (sock, req) => {
   const url = new URL(req.url ?? '/', 'http://x')
+
+  // Spectators watch a match read-only. Anyone may watch — a battle exposes
+  // nothing here the two players do not already show each other — so no sign-in
+  // is required. A watcher is never seated, so it can neither act nor forfeit.
+  if (url.searchParams.get('spectate')) {
+    const room = getRoom(url.searchParams.get('room') ?? '')
+    if (!room || room.practice) {
+      sock.send(JSON.stringify({ type: 'error', error: 'no live battle to watch' }))
+      return sock.close()
+    }
+    addSpectator(room, sock)
+    // A watcher's messages are ignored — it has no seat and cannot submit.
+    sock.on('close', () => removeSpectator(room, sock))
+    return
+  }
+
   const address = sessionAddress(url.searchParams.get('token') ?? undefined)
 
   if (!address) {
@@ -1808,6 +1939,10 @@ console.log(`  dex: ${MOVES.size} moves, ${allSpecies().length} species ready`)
 // loaded. This throws on an illegal roster — better at boot than mid-match.
 buildOpponents()
 console.log(`  practice: ${OPPONENTS.length} opponents ready`)
+
+// The ETH/USD ticker only feeds prize DISPLAY; boot it in the background so a
+// slow price API never delays the server coming up.
+startPriceFeed()
 
 server.listen(PORT, BIND, () => {
   // Only after binding: a second instance that loses the race for the port

@@ -2,7 +2,7 @@ import { randomBytes, createHash, randomUUID } from 'node:crypto'
 import type { WebSocket } from 'ws'
 import {
   createBattle, resolveTurn, replaceFainted, validateAction, publicState, firstLegalAction,
-  viewerEvents,
+  viewerEvents, spectatorState, spectatorEvents,
   type Action, type Battle, type BattleEvent, type TeamSlot,
 } from './battle/active.js'
 import { db, now, ensureUser } from './db.js'
@@ -67,6 +67,15 @@ export type Room = {
   steps: Step[]
   /** Set when this battle is a tournament fixture, so the bracket can advance. */
   tournamentMatchId: number | null
+  /**
+   * Read-only watchers. They receive the same public state both players already
+   * expose (no move list or PP on either side) and can never submit an action,
+   * so a watcher — including a player peeking at their own live wager — learns
+   * nothing a cheater could use.
+   */
+  spectators: Set<WebSocket>
+  /** When the match began, for the live-battle listing. */
+  startedAt: number
 }
 
 const rooms = new Map<string, Room>()
@@ -116,6 +125,39 @@ function pushState(room: Room, rawLines: string[] = []) {
       wagerId: room.wagerId,
     })
   }
+  pushSpectators(room, rawLines)
+}
+
+/** Identity of a room seat as a spectator should see it — masked like the rest
+ * of the site, so a player who hid their wallet stays hidden to watchers too. */
+function spectatorIdentity(addr: string) {
+  if (addr === BOT_ADDRESS) return { address: addr, name: 'Practice AI', hidden: false }
+  const u = db.prepare('SELECT name, hide_wallet FROM users WHERE address = ?').get(addr) as
+    | { name: string | null; hide_wallet: number }
+    | undefined
+  const hidden = Boolean(u?.hide_wallet)
+  return { address: hidden ? null : addr, name: u?.name ?? null, hidden }
+}
+
+/** Broadcast the neutral, both-sides-public view to every watcher of the room. */
+function pushSpectators(room: Room, rawLines: string[] = []) {
+  if (room.spectators.size === 0) return
+  const [i0, i1] = [spectatorIdentity(room.seats[0].address), spectatorIdentity(room.seats[1].address)]
+  const msg = JSON.stringify({
+    type: 'state',
+    roomId: room.id,
+    state: spectatorState(room.battle),
+    events: rawLines.length ? spectatorEvents(room.battle, rawLines) : [],
+    p0: i0.address, p0Name: i0.name, p0Hidden: i0.hidden,
+    p1: i1.address, p1Name: i1.name, p1Hidden: i1.hidden,
+    deadline: room.deadline,
+    practice: room.practice,
+    stakeWei: room.stakeWei,
+    wagerId: room.wagerId,
+  })
+  for (const sock of room.spectators) {
+    if (sock.readyState === 1) sock.send(msg)
+  }
 }
 
 export function createRoom(
@@ -147,18 +189,25 @@ export function createRoom(
     practice: Boolean(p0.bot || p1.bot),
     steps: [],
     tournamentMatchId,
+    spectators: new Set(),
+    startedAt: now(),
   }
 
   rooms.set(id, room)
   if (!p0.bot) byPlayer.set(p0.address, id)
   if (!p1.bot) byPlayer.set(p1.address, id)
 
+  // Record which engine drove this match so its replay re-derives on the same
+  // one. The current engine tags its battle with `engine`; the frozen v1 engine
+  // has no such field, so a missing tag means v1.
+  const engineVersion = (room.battle as { engine?: number }).engine ?? 1
+
   db.prepare(
-    `INSERT INTO battles (id, wager_id, p0, p1, seed, seed_hash, started_at, p0_team, p1_team)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO battles (id, wager_id, p0, p1, seed, seed_hash, started_at, p0_team, p1_team, engine)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id, wagerId, p0.address, p1.address, seed, seedHash, now(),
-    JSON.stringify(p0.team), JSON.stringify(p1.team),
+    JSON.stringify(p0.team), JSON.stringify(p1.team), engineVersion,
   )
 
   // The leads' switch-in abilities happen before anyone chooses anything.
@@ -199,6 +248,66 @@ export function detachSocket(room: Room, address: string) {
     // They connected, so this is a forfeit, not a void.
     voidsMatch: false,
   })
+}
+
+/**
+ * Seat a read-only watcher and hand them the current state. A spectator socket
+ * is never a `Seat`, so it cannot submit actions or forfeit; the only thing it
+ * does is receive `pushSpectators` broadcasts.
+ */
+export function addSpectator(room: Room, sock: WebSocket) {
+  room.spectators.add(sock)
+  const [i0, i1] = [spectatorIdentity(room.seats[0].address), spectatorIdentity(room.seats[1].address)]
+  send(sock, { type: 'hello', roomId: room.id, spectator: true, seedHash: room.seedHash })
+  // The opening state, with no events — a watcher who joins mid-match should see
+  // the board as it stands, not replay everything that already happened.
+  send(sock, {
+    type: 'state',
+    roomId: room.id,
+    state: spectatorState(room.battle),
+    events: [],
+    p0: i0.address, p0Name: i0.name, p0Hidden: i0.hidden,
+    p1: i1.address, p1Name: i1.name, p1Hidden: i1.hidden,
+    deadline: room.deadline,
+    practice: room.practice,
+    stakeWei: room.stakeWei,
+    wagerId: room.wagerId,
+  })
+  // A watcher who arrives after the match already ended still gets told so.
+  if (room.ended) {
+    send(sock, {
+      type: 'ended',
+      winner: room.battle.winner,
+      seed: room.battle.seed,
+      seedHash: room.seedHash,
+      events: [],
+    })
+  }
+}
+
+export function removeSpectator(room: Room, sock: WebSocket) {
+  room.spectators.delete(sock)
+}
+
+/**
+ * Summaries of every live, watchable match — non-practice rooms still in
+ * progress. Raw addresses; the caller masks hidden wallets and adds tournament
+ * context.
+ */
+export function liveBattles() {
+  return [...rooms.values()]
+    .filter((r) => !r.ended && !r.practice)
+    .map((r) => ({
+      roomId: r.id,
+      p0: r.seats[0].address,
+      p1: r.seats[1].address,
+      turn: r.battle.turn,
+      stakeWei: r.stakeWei,
+      wagerId: r.wagerId,
+      tournamentMatchId: r.tournamentMatchId,
+      spectators: r.spectators.size,
+      startedAt: r.startedAt,
+    }))
 }
 
 function startTurn(room: Room, rawLines: string[] = []) {
@@ -368,6 +477,22 @@ export function finish(
   // it came from the battle. Synthetic endings (forfeit/void) pass plain text.
   const eventsFor = (side: 0 | 1) =>
     rawLines && rawLines.length ? viewerEvents(room.battle, side, rawLines) : events
+
+  // Watchers see the same reveal both players do: the closing events and the
+  // seed, so a spectator can hand the match straight to the replay verifier.
+  if (room.spectators.size > 0) {
+    const specEvents = rawLines && rawLines.length ? spectatorEvents(room.battle, rawLines) : events
+    const endMsg = JSON.stringify({
+      type: 'ended',
+      winner,
+      seed: room.battle.seed,
+      seedHash: room.seedHash,
+      events: specEvents,
+    })
+    for (const sock of room.spectators) {
+      if (sock.readyState === 1) sock.send(endMsg)
+    }
+  }
 
   db.prepare(
     'UPDATE battles SET winner = ?, log = ?, steps = ?, forced = ?, ended_at = ? WHERE id = ?',

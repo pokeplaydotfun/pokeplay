@@ -13,7 +13,7 @@ export const BRAND = {
   url: 'https://pokeplay.fun',
   /** Fill these in to activate the footer buttons. Empty renders them inert. */
   twitter: 'https://x.com/pokeplayrh',
-  github: '',
+  github: 'https://github.com/pokeplaydotfun/pokeplay',
 }
 
 /**
