@@ -86,7 +86,7 @@ export const explorerUrl = (path: `address/${string}` | `token/${string}` | `tx/
  */
 export const collectionUrl = (contract: string, hasMints = false) =>
   hasMints
-    ? // The TOKEN page: shows "Pokemon World Assets (PWA)" — the ERC-721 name() and symbol() —
+    ? // The TOKEN page: shows the collection ("Slabs") — the ERC-721 name() and symbol() —
       // along with holders and inventory. This is the page a collector wants.
       `https://robinhoodchain.blockscout.com/token/${contract}`
     : // Before any mint there is no token record, so that page 404s. The ADDRESS page always

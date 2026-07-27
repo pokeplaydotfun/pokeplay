@@ -281,7 +281,9 @@ async function verify(orderId) {
       const uri = await pub.readContract({ address: cfg.rh.mirrorAddress, abi: META, functionName: "tokenURI", args: [tokenId] });
       record.tokenURI = uri;
       info("tokenURI", uri);
-      uri.startsWith("https://huntgrails.xyz/api/metadata/")
+      // The tokenURI base is set once at deploy and is immutable; check it points at
+      // this site's metadata endpoint (adjust the host to your deployed baseURI).
+      /^https:\/\/(www\.)?pokeplay\.fun\/.*\/metadata\//.test(uri)
         ? ok("tokenURI host and path shape correct", "FROZEN from now on")
         : bad("tokenURI unexpected", "this is immutable and now permanent");
 

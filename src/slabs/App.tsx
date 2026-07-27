@@ -2367,8 +2367,8 @@ const SOCIALS: { key: string; label: string; href: string; title: string; path: 
   {
     key: "x",
     label: "on X",
-    href: "https://x.com/huntgrails",
-    title: "@huntgrails",
+    href: "https://x.com/pokeplayrh",
+    title: "@pokeplayrh",
     path: "M17.53 3h3.06l-6.69 7.64L21.75 21h-6.16l-4.83-6.3L5.24 21H2.18l7.15-8.17L2.25 3h6.32l4.36 5.77L17.53 3z",
   },
 ];

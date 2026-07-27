@@ -55,7 +55,7 @@ export function HowItWorks({
   /**
    * Has anything been minted? It decides which explorer page the collection links to.
    *
-   * The token page shows "Pokemon World Assets (PWA)" but does not exist until the first
+   * The token page shows the collection ("Slabs") but does not exist until the first
    * Transfer, because Blockscout only creates a token record when it sees one. The address
    * page always resolves but titles itself "MirrorNFT", the Solidity contract name. So one is
    * a dead link and the other is developer-facing, and which is wrong depends entirely on
