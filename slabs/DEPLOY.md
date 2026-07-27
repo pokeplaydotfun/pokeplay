@@ -12,6 +12,31 @@ The Slabs section (ported GRAILS gacha, rebranded) is three pieces:
 Nothing here is live yet. Everything below needs **your** keys, funded float, and a
 real-money smoke test. I never handle those keys.
 
+## 0. Wallets — 1 Solana + 2 EVM (same concept as the other project)
+
+Three wallets total. Every env var maps to exactly one of them:
+
+**EVM #1 — COLD (owner + treasury).** Offline; never signs at runtime, never deploys.
+- `OWNER_ADDRESS` — admin of all 4 contracts; holds the forceRefund escape hatch.
+- `TREASURY_ADDRESS` — receives the 2.5% marketplace fee (kept cold; sweep-safe).
+- I need: **its address only.**
+
+**EVM #2 — HOT worker.** The backend's runtime key; also deploys and can pause.
+- `WORKER_ADDRESS` (= the Fulfiller caller + quote signer) — on-chain runtime role.
+- `GUARDIAN_ADDRESS` — automated pause-only role (same hot key so the monitor can halt).
+- `DEPLOYER_PRIVATE_KEY` — runs the deploy, then hands ownership to the cold owner and
+  keeps only the worker role. Keeps the cold key offline through the whole deploy.
+- `WORKER_PRIVATE_KEY` (backend .env) — the SAME key; the worker signs quotes/fulfils.
+- I need: **its address + private key** (goes in the deploy env and the box `.env`).
+
+**Solana wallet — custody + signer.** Holds the Collector Crypt cards + SOL for fees.
+- `SOLANA_OPERATOR_ADDRESS` + `SOLANA_OPERATOR_SECRET_KEY` (backend .env) — signs the
+  Solana side (pack opens, unwraps, transfers).
+- I need: **its address + secret key** (box `.env`), funded with the CC cards + some SOL.
+
+> Note: I put the treasury (fees) on the COLD wallet for safety. The other project ran
+> fees through the hot worker — say so and I'll flip `TREASURY_ADDRESS` to the worker.
+
 ## 1. Contracts (you deploy, once)
 Same pattern as the escrow/pool deploys. From `slabs/contracts`, deploy the four
 contracts to Robinhood mainnet (via your keystore, in a real terminal for the
