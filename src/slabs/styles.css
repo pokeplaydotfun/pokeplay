@@ -1170,14 +1170,14 @@
 }
 
 /*
- * The pack reveal. Deliberately still near-black: the tier glow, the burst and
- * the slab flash are all additive light, and they only read against darkness.
- * This is the site's one theatrical moment and the only place the cream theme
- * gets out of the way completely.
+ * The pack reveal. Uses the SAME soft cream-dim as every other stage — no
+ * near-black — so the reveal reads as a pokeplay modal over the cream floor,
+ * not a blackout. The tier glow/burst below are toned to read on this light
+ * backdrop (a soft coloured halo + shadow, not an additive light burst).
  */
 .slabs-root .stage-theater {
-  background: rgba(9, 8, 6, 0.95);
-  backdrop-filter: blur(16px);
+  background: var(--scrim);
+  backdrop-filter: blur(10px);
 }
 
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
