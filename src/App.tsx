@@ -6,7 +6,7 @@ import { Footer } from './components/Footer'
 import { DevLogin } from './components/DevLogin'
 import { DEV_LOGIN_POSSIBLE } from './config'
 import { UsernameGate } from './components/UsernameGate'
-import { BRAND, NAV } from './config'
+import { BRAND, NAV, SLABS_ENABLED } from './config'
 
 import Home from './pages/Home'
 
@@ -24,6 +24,7 @@ const Token = lazy(() => import('./pages/Token'))
 const Profile = lazy(() => import('./pages/Profile'))
 const Replay = lazy(() => import('./pages/Replay'))
 const Watch = lazy(() => import('./pages/Watch'))
+const Slabs = lazy(() => import('./pages/Slabs'))
 
 function Header() {
   const [menu, setMenu] = useState(false)
@@ -106,17 +107,23 @@ function TitleSync() {
   return null
 }
 
-export default function App() {
+/**
+ * The app shell. The Slabs section (/slabs) is a self-contained ported app with
+ * its own full-page chrome, so pokeplay's header/footer/username-gate are hidden
+ * there to avoid doubling up; everywhere else they wrap the page as usual.
+ */
+function Shell() {
+  const slabs = useLocation().pathname.startsWith('/slabs')
   return (
-    <BrowserRouter>
+    <>
       <TitleSync />
       {/* The dev-login probe 404s on any real deployment, which logged an
           error in every visitor's console. Only mount it where it can work. */}
       {DEV_LOGIN_POSSIBLE && <DevLogin />}
-      <Header />
+      {!slabs && <Header />}
       {/* Blocks the app until a first-time wallet has claimed a name. */}
-      <UsernameGate />
-      <main>
+      {!slabs && <UsernameGate />}
+      <main className={slabs ? 'main--bleed' : undefined}>
         <Suspense fallback={<div className="route-loading"><Spinner label="Loading…" /></div>}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -130,6 +137,9 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/replay/:id" element={<Replay />} />
           <Route path="/watch/:roomId" element={<Watch />} />
+          {/* Gated: only mounts once the Slabs gacha is configured (VITE_SLABS_ENABLED).
+              Off by default so a working-tree deploy never exposes it half-wired. */}
+          {SLABS_ENABLED && <Route path="/slabs/*" element={<Slabs />} />}
 
           {/* Old split routes now all land on the unified page. */}
           <Route path="/teams" element={<Navigate to="/play" replace />} />
@@ -140,7 +150,15 @@ export default function App() {
         </Routes>
         </Suspense>
       </main>
-      <Footer />
+      {!slabs && <Footer />}
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Shell />
     </BrowserRouter>
   )
 }

@@ -1,0 +1,38 @@
+[Unit]
+Description=Slabs fulfilment worker and API (pokeplay)
+After=network-online.target
+Wants=network-online.target
+
+# Give up and stay down if it crash-loops: a worker that cannot reach its RPC should be
+# visible as a dead unit, not an endless restart that looks healthy in the logs.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+# Runs non-root as its own user, matching how pokeplay's wager service is hardened.
+User=slabs
+Group=slabs
+WorkingDirectory=/srv/slabs/backend
+
+# NOT EnvironmentFile=. The app loads .env through dotenv (config.ts); systemd's parser is
+# not dotenv's, so pointing both at one secrets file means two chances to misread a key.
+# The DB lives OUTSIDE the deploy tree so a redeploy (rsync --delete) cannot destroy the
+# order history. This Environment= line is the backstop; the shipped .env must agree.
+Environment=DB_PATH=/var/lib/slabs/slabs.sqlite
+
+# Node 22+ supports --experimental-strip-types and node:sqlite unflagged.
+ExecStart=/usr/bin/node --experimental-strip-types src/main.ts
+
+Restart=always
+RestartSec=5
+
+# Hardening (mirrors the pokeplay wager unit).
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/slabs
+
+[Install]
+WantedBy=multi-user.target

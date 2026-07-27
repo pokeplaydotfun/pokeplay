@@ -46,3 +46,10 @@ data/.cache.json
 
 # Internal session handoff notes — not for the public repo.
 SESSION-*.md
+
+# Slabs (ported gacha) build artifacts
+slabs/contracts/out/
+slabs/contracts/cache/
+slabs/contracts/broadcast/
+slabs/backend/tsconfig.tsbuildinfo
+slabs/backend/data/

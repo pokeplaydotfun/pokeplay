@@ -68,9 +68,20 @@ export const TOKEN = {
   holders: null as number | null,
 }
 
+/**
+ * The Slabs gacha section is a self-contained ported product that only works once
+ * its contracts + backend are deployed and configured (see slabs/DEPLOY.md). Until
+ * then it is HIDDEN — the nav item and the /slabs route are both gated on this flag —
+ * so an ordinary pokeplay deploy (which ships the working tree) can never expose an
+ * unconfigured gacha on the live site. Flip `VITE_SLABS_ENABLED=true` in the build
+ * env once Phase 5 is done.
+ */
+export const SLABS_ENABLED = import.meta.env.VITE_SLABS_ENABLED === 'true'
+
 export const NAV = [
   { label: 'Play', to: '/play' },
   { label: 'Tournaments', to: '/tournaments' },
+  ...(SLABS_ENABLED ? [{ label: 'Slabs', to: '/slabs' }] : []),
   { label: 'Leaderboard', to: '/leaderboard' },
   { label: 'Token', to: '/token' },
   { label: 'Guide', to: '/guide' },
