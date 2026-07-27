@@ -92,7 +92,9 @@ snapshot_neighbours
 
 say "Building the frontend"
 # The API is same-origin in production, so the base URL is empty.
-VITE_API_BASE="" npm run build
+# Slabs (the ported gacha) is switched ON here and pointed at its backend via the
+# Caddy subpath; its contract addresses are baked into src/slabs/chain.ts.
+VITE_API_BASE="" VITE_SLABS_ENABLED=true VITE_API_URL="https://${DOMAIN}/slabs-api" npm run build
 
 say "Shipping files"
 ssh "$HOST" "id $SERVICE_USER >/dev/null 2>&1 || useradd --system --home-dir /var/lib/slabshowdown --shell /usr/sbin/nologin $SERVICE_USER"

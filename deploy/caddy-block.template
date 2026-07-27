@@ -25,6 +25,15 @@ __DOMAIN__, www.__DOMAIN__ {
 		}
 	}
 
+	# The Slabs gacha backend (a separate service). handle_path STRIPS the
+	# /slabs-api prefix, so the worker sees /machines, /order, etc.
+	handle_path /slabs-api/* {
+		reverse_proxy 127.0.0.1:8792 {
+			lb_try_duration 8s
+			lb_try_interval 250ms
+		}
+	}
+
 	# Static frontend, with SPA fallback so /play/:roomId resolves on a
 	# hard refresh instead of 404ing.
 	handle {
