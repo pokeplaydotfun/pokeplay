@@ -161,7 +161,7 @@ export function TokenPage() {
             {[
               {
                 q: "Do I need to hold the token to open packs?",
-                a: `No. Packs are opened with USDG at Collector Crypt's price whether or not you hold the token. Holding it only makes you eligible for the holder rewards, and taking part in the platform is what places you on the leaderboard.`,
+                a: `No. Packs are opened with USDG at Collector Crypt's price whether or not you hold the token. Taking part in the platform is what places you on the leaderboard.`,
               },
               {
                 q: "How do users get rewarded?",
