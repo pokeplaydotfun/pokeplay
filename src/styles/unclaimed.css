@@ -144,3 +144,16 @@
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* A settled balance the contract still holds. Same shape as a pot row, but it is not a claim:
+   the result is already on chain and this is only the transfer. */
+.uc__credit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+}

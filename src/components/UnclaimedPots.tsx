@@ -30,6 +30,43 @@ type Settlement =
   | { kind: 'draw'; wagerId: string; signature: `0x${string}` }
 
 /**
+ * What the escrow still owes you, read straight from the chain.
+ *
+ * Settling is per WAGER; withdrawing is per PLAYER. `settleDraw` credits BOTH players in one
+ * transaction, so when one of them settles and withdraws, the wager leaves
+ * /api/me/unclaimed for the other player too, even though their credit is untouched. Their
+ * money then had no button anywhere on the site.
+ *
+ * The chain is the authority on what is owed, so this asks it rather than inferring from a
+ * wager's status. Any credit shows a withdraw control until it is actually zero.
+ */
+function useCredit(address: `0x${string}` | undefined, refreshKey: number) {
+  const publicClient = usePublicClient()
+  const [wei, setWei] = useState<bigint>(0n)
+
+  useEffect(() => {
+    if (!publicClient || !escrowReady || !address) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const v = await publicClient.readContract({
+          address: requireEscrow(),
+          abi: escrowAbi,
+          functionName: 'balances',
+          args: [address],
+        })
+        if (!cancelled) setWei(v as bigint)
+      } catch {
+        /* leave at zero */
+      }
+    })()
+    return () => { cancelled = true }
+  }, [publicClient, address, refreshKey])
+
+  return wei
+}
+
+/**
  * The contract's fee, read from the chain rather than assumed.
  *
  * Needed because a winner does NOT receive the pot: they receive the pot minus this fee. The
@@ -138,16 +175,18 @@ function Countdown({ at }: { at: number | undefined }) {
 
 export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
   const [pots, setPots] = useState<Unclaimed[]>([])
-  const [busy, setBusy] = useState<number | null>(null)
+  const [busy, setBusy] = useState<number | 'credit' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'idle' | 'signing' | 'wallet' | 'confirming'>('idle')
 
-  const { chainId } = useAccount()
+  const { chainId, address } = useAccount()
   const { switchChainAsync } = useSwitchChain()
   const publicClient = usePublicClient()
   const { writeContractAsync } = useWriteContract()
   const deadlines = useDeadlines(pots)
   const feeBps = useFeeBps()
+  const [creditKey, setCreditKey] = useState(0)
+  const credit = useCredit(address, creditKey)
   /**
    * What was just claimed, kept AFTER the pot leaves the list.
    *
@@ -175,7 +214,34 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
     return () => clearInterval(t)
   }, [refresh])
 
-  if (!signedIn || (pots.length === 0 && !claimed)) return null
+  /** Withdraw a credit that has no pot row behind it, which is the stranded case. */
+  const withdrawCredit = async () => {
+    setError(null)
+    setBusy('credit')
+    try {
+      if (!escrowReady) throw new Error('The escrow contract is not deployed yet.')
+      if (!publicClient) throw new Error('No RPC client for this network.')
+      if (chainId !== CHAIN_ID) await switchChainAsync({ chainId: CHAIN_ID })
+      setStep('wallet')
+      const hash = await writeContractAsync({
+        address: requireEscrow(),
+        abi: escrowAbi,
+        functionName: 'withdraw',
+      })
+      setStep('confirming')
+      await publicClient.waitForTransactionReceipt({ hash })
+      setClaimed({ amountWei: credit.toString(), kind: 'draw', hash })
+      setCreditKey((k) => k + 1)
+      await refresh()
+    } catch (e) {
+      if (!isUserRejection(e)) setError(describeTxError(e))
+    } finally {
+      setBusy(null)
+      setStep('idle')
+    }
+  }
+
+  if (!signedIn || (pots.length === 0 && credit === 0n && !claimed)) return null
 
   async function claim(pot: Unclaimed) {
     setError(null)
@@ -224,6 +290,7 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
         kind: pot.kind,
         hash: wHash,
       })
+      setCreditKey((k) => k + 1)
       await refresh()
     } catch (e) {
       if (!isUserRejection(e)) setError(describeTxError(e))
@@ -260,6 +327,16 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
         </div>
       )}
 
+      {pots.length === 0 && credit > 0n && !claimed && (
+        <div className="uc__head">
+          <h2>You have {CURRENCY} to withdraw</h2>
+          <p>
+            This was already settled on chain, by you or by your opponent, and the contract is
+            holding your share until you withdraw it. Nothing expires and nothing is at risk.
+          </p>
+        </div>
+      )}
+
       {pots.length > 0 && (
       <div className="uc__head">
         {/* The copy was written for a win and then shown on every row, so a draw read as
@@ -293,6 +370,20 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
       )}
 
       {error && <div className="uc__error">{error}</div>}
+
+      {credit > 0n && pots.length === 0 && (
+        <div className="uc__credit">
+          <div className="uc__what">
+            <span className="uc__amount">
+              {formatEth(credit.toString())} {CURRENCY}
+            </span>
+            <span className="uc__kind">settled and waiting in the contract</span>
+          </div>
+          <button className="uc__claim" onClick={() => void withdrawCredit()} disabled={busy !== null}>
+            {busy === 'credit' && label ? label : 'Withdraw'}
+          </button>
+        </div>
+      )}
 
       <ul className="uc__list">
         {pots.map((p) => (
