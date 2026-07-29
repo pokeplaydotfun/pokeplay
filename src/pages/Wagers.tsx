@@ -6,7 +6,7 @@ import { api, formatEth, parseEth, type Team, type Wager } from '../lib/api'
 import { useSession } from '../lib/session'
 import { Banner, Empty, Spinner } from '../components/ui'
 import { ClaimPanel } from '../components/ClaimPanel'
-import { CHAIN_ID, CHAIN_LABEL, CURRENCY } from '../config'
+import { CHAIN_ID, CHAIN_LABEL, CURRENCY, MIN_STAKE_WEI, MIN_STAKE_LABEL } from '../config'
 import {
   describeTxError,
   escrowAbi,
@@ -236,6 +236,11 @@ export function WagerBoard({
     if (paid && !escrowReady) return setError('Paid wagering is not available yet.')
     if (stakeWei === null) return setError(`Enter a valid ${CURRENCY} amount.`)
     if (paid && BigInt(stakeWei) === 0n) return setError('A paid wager needs a stake above zero.')
+    // Checked here so the wallet is never opened for a stake the server will refuse: the
+    // escrow transaction comes FIRST, so a late rejection would strand real ETH on chain.
+    if (paid && BigInt(stakeWei) < MIN_STAKE_WEI) {
+      return setError(`The smallest paid stake is ${MIN_STAKE_LABEL} ${CURRENCY}.`)
+    }
 
     try {
       let onchainId: string | undefined
@@ -550,8 +555,16 @@ export function WagerBoard({
                       />
                       <span className="wagers__unit">{CURRENCY}</span>
                     </div>
-                    {stakeWei === null && (
+                    {stakeWei === null ? (
                       <p className="wagers__hint wagers__hint--bad">Not a valid amount.</p>
+                    ) : BigInt(stakeWei) > 0n && BigInt(stakeWei) < MIN_STAKE_WEI ? (
+                      <p className="wagers__hint wagers__hint--bad">
+                        Minimum stake is {MIN_STAKE_LABEL} {CURRENCY}.
+                      </p>
+                    ) : (
+                      <p className="wagers__hint">
+                        Minimum {MIN_STAKE_LABEL} {CURRENCY}.
+                      </p>
                     )}
                   </div>
                 )}

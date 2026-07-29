@@ -24,6 +24,20 @@ export const CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID ?? 4663)
 export const IS_TESTNET = CHAIN_ID !== 4663
 export const CHAIN_LABEL = IS_TESTNET ? 'Robinhood Testnet' : 'Robinhood Chain'
 export const CURRENCY = 'ETH'
+
+/**
+ * Smallest real-money stake, in wei. 0.001 ETH.
+ *
+ * ⚠ The server enforces the SAME figure in `/api/wagers` (`MIN_STAKE_WEI` in
+ * server/src/index.ts) and that copy is the one that counts — this form can be bypassed by
+ * calling the API directly, or by escrowing on chain and posting the id. Changing one without
+ * the other gives a board that either rejects wagers it offered to take, or accepts ones it
+ * said it would not. If you move this number, move both.
+ *
+ * Free wagers are unaffected: a stake of exactly 0 stays legal.
+ */
+export const MIN_STAKE_WEI = 1_000_000_000_000_000n
+export const MIN_STAKE_LABEL = '0.001'
 export const EXPLORER = (import.meta.env.VITE_EXPLORER ??
   'https://robinhoodchain.blockscout.com') as string
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, formatEth, formatSignedEth, type LeaderRow, type Champion } from '../lib/api'
 import { CURRENCY, SLABS_ENABLED } from '../config'
 import { getLeaderboard, type LeaderRow as CardLeaderRow } from '../slabs/client'
+import { resolveNames } from '../lib/names'
 import { Address } from '../components/Address'
 import { useSession } from '../lib/session'
 import { Banner, Empty, Spinner, Stat } from '../components/ui'
@@ -32,6 +33,7 @@ export default function Leaderboard() {
   // Which board is showing. Only relevant in the merged (Slabs-on) build.
   const [board, setBoard] = useState<'battles' | 'cards'>('battles')
   const [cardRows, setCardRows] = useState<CardLeaderRow[] | null>(null)
+  const [cardNames, setCardNames] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -65,6 +67,26 @@ export default function Leaderboard() {
       cancelled = true
     }
   }, [board, cardRows])
+
+  /**
+   * Names are resolved in their OWN effect, keyed on the rows.
+   *
+   * They used to be awaited inside the fetch above, which quietly never worked: that effect
+   * lists `cardRows` as a dependency, so `setCardRows` re-runs it, React fires the previous
+   * run's cleanup, and the `cancelled` flag the await was guarded by is already true by the
+   * time the names come back. The request went out, the reply arrived, and the result was
+   * dropped on the floor — the board kept showing wallets with no error anywhere.
+   */
+  useEffect(() => {
+    if (!cardRows || cardRows.length === 0) return
+    let cancelled = false
+    void resolveNames(cardRows.map((r) => r.address)).then((n) => {
+      if (!cancelled) setCardNames(n)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [cardRows])
 
   const mine = me?.address.toLowerCase()
   const usd = (micro: string) => {
@@ -273,7 +295,17 @@ export default function Leaderboard() {
                       >
                         <td className={`lb__rank${medal ? ` lb__rank--${medal}` : ''}`}>{i + 1}</td>
                         <td className="lb__player">
-                          <Address value={r.address} className="lb__name" />
+                          {/* Identical treatment to the Battles tab above: username leads,
+                              wallet beneath. Without this the same person reads as "pika" on
+                              one tab and 0xfdeb…3057 on the other. */}
+                          {cardNames[r.address.toLowerCase()] ? (
+                            <>
+                              <span className="lb__name">{cardNames[r.address.toLowerCase()]}</span>
+                              <Address value={r.address} className="lb__addr" />
+                            </>
+                          ) : (
+                            <Address value={r.address} className="lb__name" />
+                          )}
                           {isMe && <span className="lb__me-tag">you</span>}
                         </td>
                         <td className="lb__num lb__mid">{r.packsOpened}</td>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import { getLeaderboard, type LeaderRow, type LeaderSort } from "./client.ts";
 import { Address } from "./Address.tsx";
+import { resolveNames } from "../lib/names";
 
 /**
  * Two leaderboards over the same data, switched rather than shown side by side: the ranking
@@ -23,33 +24,6 @@ const usd = (base: string) =>
 
 /** Gold, silver, bronze, then nothing. A rank badge past third is just noise. */
 const medal = (i: number) => (i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "");
-
-/**
- * Address -> username, resolved against the wager app's `/api/names`.
- *
- * Names live in pokeplay's own database; the cards backend has no concept of one. Without
- * this the two leaderboards read as different products — battles showing "pika", cards
- * showing 0xfdeb…3057 for the same person.
- *
- * ⚠ A wallet with "Hide my wallet" set is deliberately absent from the response, so it keeps
- * showing as an address here. Returning its name would tie that name to a wallet, which is
- * the exact association the setting prevents. Failing soft is the point: on any error every
- * row simply falls back to the address, which is what it displayed before.
- */
-async function resolveNames(addresses: string[]): Promise<Record<string, string>> {
-  const unique = [...new Set(addresses.map((a) => a.toLowerCase()))].slice(0, 100);
-  if (unique.length === 0) return {};
-  try {
-    const res = await fetch(`/api/names?addresses=${unique.join(",")}`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return {};
-    const body = (await res.json()) as { names?: { address: string; name: string }[] };
-    return Object.fromEntries((body.names ?? []).map((n) => [n.address.toLowerCase(), n.name]));
-  } catch {
-    return {};
-  }
-}
 
 export function Leaderboard() {
   const { address } = useAccount();

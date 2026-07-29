@@ -212,5 +212,42 @@ await check('paid tournaments stay refused while fees cannot be held', async () 
   assert.strictEqual(r.status, 400, JSON.stringify(r.body))
 })
 
+await check('a paid wager below the minimum stake is refused', async () => {
+  /*
+   * The floor is 0.001 ETH and the SERVER copy is the one that holds. The form is not the
+   * only way in: this endpoint takes a direct POST, and a stake can be escrowed on chain and
+   * the id posted afterwards. A client-only minimum would be decorative.
+   */
+  const p = await player('tinystake')
+  const r = await api('/api/wagers', {
+    method: 'POST', headers: auth(p.token),
+    // 0.0009 ETH - just under, and paired with an on-chain id so the ONLY thing
+    // that can reject it is the minimum itself.
+    body: JSON.stringify({ teamId: p.teamId, stakeWei: '900000000000000', onchainId: '1' }),
+  })
+  assert.strictEqual(r.status, 400, `a sub-minimum stake was accepted: ${JSON.stringify(r.body)}`)
+  assert.match(String(r.body?.error ?? ''), /0\.001/, `the refusal should name the floor: ${JSON.stringify(r.body)}`)
+})
+
+await check('exactly the minimum stake is accepted', async () => {
+  // The boundary belongs to the player: >= passes, so 0.001 itself must go through.
+  const p = await player('exactmin')
+  const r = await api('/api/wagers', {
+    method: 'POST', headers: auth(p.token),
+    body: JSON.stringify({ teamId: p.teamId, stakeWei: '1000000000000000', onchainId: '2' }),
+  })
+  assert.strictEqual(r.status, 200, `the minimum itself was rejected: ${JSON.stringify(r.body)}`)
+})
+
+await check('a FREE wager is unaffected by the stake floor', async () => {
+  // Zero is a free wager, not a cheap one - the floor must not make free play impossible.
+  const p = await player('freeplay')
+  const r = await api('/api/wagers', {
+    method: 'POST', headers: auth(p.token),
+    body: JSON.stringify({ teamId: p.teamId, stakeWei: '0' }),
+  })
+  assert.strictEqual(r.status, 200, `free wagers broke: ${JSON.stringify(r.body)}`)
+})
+
 console.log(`\n${passed} security checks passed${process.exitCode ? ' (with failures)' : ''}`)
 process.exit(process.exitCode ?? 0)

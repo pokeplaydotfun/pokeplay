@@ -40,6 +40,21 @@ const PORT = Number(process.env.PORT ?? 8090)
  * only — the API is never directly reachable from the internet.
  */
 const BIND = process.env.HOST ?? '0.0.0.0'
+
+/**
+ * The smallest real-money stake a wager may carry: 0.001 ETH.
+ *
+ * A floor exists because a paid wager costs both players gas to escrow, accept, settle and
+ * withdraw. Below roughly this figure the gas outweighs the pot, so a "win" loses money and
+ * the board fills with wagers nobody benefits from taking.
+ *
+ * ⚠ Mirrored in the client as MIN_STAKE_WEI (src/config.ts). Keep the two identical: the
+ * client copy decides what the form OFFERS, this one decides what is ACCEPTED, and a
+ * disagreement shows up as a wager the site invited and then refused.
+ */
+const MIN_STAKE_WEI = 1_000_000_000_000_000n
+const MIN_STAKE_LABEL = '0.001'
+
 const app = express()
 
 /**
@@ -446,6 +461,19 @@ app.post('/api/wagers', requireAuth, rateLimit(20, 60, 'address'), (req, res) =>
 
   const stake = String(stakeWei ?? '0')
   if (!/^\d+$/.test(stake)) return res.status(400).json({ error: 'stake must be a wei integer' })
+
+  /**
+   * Floor on a real-money stake. Mirrored in the client as MIN_STAKE_WEI (src/config.ts);
+   * THIS is the copy that holds, because the form is not the only way in — the API takes a
+   * direct POST, and a stake can be escrowed on chain and the id posted afterwards.
+   *
+   * Zero stays legal: that is a free wager, not a cheap one.
+   */
+  if (stake !== '0' && BigInt(stake) < MIN_STAKE_WEI) {
+    return res.status(400).json({
+      error: `The smallest paid stake is ${MIN_STAKE_LABEL} ${'ETH'}.`,
+    })
+  }
 
   // A paid wager must reference an on-chain escrow entry. Without this the
   // board could be filled with wagers backed by no money at all.
