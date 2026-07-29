@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import { AccountMenu } from './components/AccountMenu'
 import { Mark, Spinner } from './components/ui'
@@ -26,6 +26,69 @@ const Replay = lazy(() => import('./pages/Replay'))
 const Watch = lazy(() => import('./pages/Watch'))
 const Slabs = lazy(() => import('./pages/Slabs'))
 
+/**
+ * A nav entry that expands to a small menu of links. Click-toggled (works on
+ * touch), also opens on hover on the desktop bar via CSS. Closes on outside
+ * click, on Escape, and after any child link is followed.
+ */
+function NavDropdown({
+  label,
+  items,
+  onNavigate,
+}: {
+  label: string
+  items: { label: string; to: string }[]
+  onNavigate: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+  const active = items.some((i) => pathname.startsWith(i.to))
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div className={`navdd${open ? ' navdd--open' : ''}`} ref={ref}>
+      <button
+        type="button"
+        className={`navdd__btn${active ? ' nav--active' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+      >
+        {label}
+        <span className="navdd__caret" aria-hidden="true">▾</span>
+      </button>
+      <div className="navdd__menu">
+        {items.map((i) => (
+          <NavLink
+            key={i.to}
+            to={i.to}
+            onClick={() => {
+              setOpen(false)
+              onNavigate()
+            }}
+            className={({ isActive }) => `navdd__item${isActive ? ' navdd__item--active' : ''}`}
+          >
+            {i.label}
+          </NavLink>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function Header() {
   const [menu, setMenu] = useState(false)
   // "PokePlay" is one word — no space between the two halves of the wordmark.
@@ -43,16 +106,20 @@ function Header() {
         </Link>
 
         <nav className={`nav${menu ? ' nav--open' : ''}`}>
-          {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              onClick={() => setMenu(false)}
-              className={({ isActive }) => (isActive ? 'nav--active' : undefined)}
-            >
-              {n.label}
-            </NavLink>
-          ))}
+          {NAV.map((n) =>
+            'items' in n ? (
+              <NavDropdown key={n.label} label={n.label} items={n.items} onNavigate={() => setMenu(false)} />
+            ) : (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                onClick={() => setMenu(false)}
+                className={({ isActive }) => (isActive ? 'nav--active' : undefined)}
+              >
+                {n.label}
+              </NavLink>
+            ),
+          )}
         </nav>
 
         <div className="header__right">
@@ -113,15 +180,18 @@ function TitleSync() {
  * there to avoid doubling up; everywhere else they wrap the page as usual.
  */
 function Shell() {
-  const slabs = useLocation().pathname.startsWith('/slabs')
+  const slabs = useLocation().pathname.startsWith('/cards')
   return (
     <>
       <TitleSync />
       {/* The dev-login probe 404s on any real deployment, which logged an
           error in every visitor's console. Only mount it where it can work. */}
       {DEV_LOGIN_POSSIBLE && <DevLogin />}
-      {!slabs && <Header />}
-      {/* Blocks the app until a first-time wallet has claimed a name. */}
+      {/* pokeplay's header now shows everywhere — the Slabs section is native
+          pokeplay (its own nav bar is suppressed). */}
+      <Header />
+      {/* Blocks the app until a first-time wallet has claimed a name — the wager
+          side only; the Cards/Gacha pages don't need a pokeplay username. */}
       {!slabs && <UsernameGate />}
       <main className={slabs ? 'main--bleed' : undefined}>
         <Suspense fallback={<div className="route-loading"><Spinner label="Loading…" /></div>}>
@@ -137,9 +207,12 @@ function Shell() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/replay/:id" element={<Replay />} />
           <Route path="/watch/:roomId" element={<Watch />} />
-          {/* Gated: only mounts once the Slabs gacha is configured (VITE_SLABS_ENABLED).
-              Off by default so a working-tree deploy never exposes it half-wired. */}
-          {SLABS_ENABLED && <Route path="/slabs/*" element={<Slabs />} />}
+          {/* Gated: only mounts once the Cards gacha is configured (VITE_SLABS_ENABLED).
+              Off by default so a working-tree deploy never exposes it half-wired.
+              The section lives at /cards; /slabs/* stays as a redirect for old links. */}
+          {SLABS_ENABLED && <Route path="/cards/token" element={<Navigate to="/token" replace />} />}
+          {SLABS_ENABLED && <Route path="/cards/*" element={<Slabs />} />}
+          {SLABS_ENABLED && <Route path="/slabs/*" element={<Navigate to="/cards" replace />} />}
 
           {/* Old split routes now all land on the unified page. */}
           <Route path="/teams" element={<Navigate to="/play" replace />} />
@@ -150,7 +223,7 @@ function Shell() {
         </Routes>
         </Suspense>
       </main>
-      {!slabs && <Footer />}
+      <Footer />
     </>
   )
 }

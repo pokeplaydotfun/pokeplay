@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { api, formatSignedEth, type LeaderRow, type Champion } from '../lib/api'
-import { CURRENCY } from '../config'
+import { api, formatEth, formatSignedEth, type LeaderRow, type Champion } from '../lib/api'
+import { CURRENCY, SLABS_ENABLED } from '../config'
+import { getLeaderboard, type LeaderRow as CardLeaderRow } from '../slabs/client'
 import { Address } from '../components/Address'
 import { useSession } from '../lib/session'
 import { Banner, Empty, Spinner, Stat } from '../components/ui'
@@ -12,6 +13,7 @@ type Stats = {
   openWagers: number
   liveBattles: number
   turnSeconds: number
+  stakedWei: string
 }
 
 type Board = { players: LeaderRow[]; champions: Champion[] }
@@ -27,14 +29,18 @@ export default function Leaderboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Which board is showing. Only relevant in the merged (Slabs-on) build.
+  const [board, setBoard] = useState<'battles' | 'cards'>('battles')
+  const [cardRows, setCardRows] = useState<CardLeaderRow[] | null>(null)
+
   useEffect(() => {
     let cancelled = false
 
     Promise.all([api.get<Board>('/api/leaderboard'), api.get<Stats>('/api/stats')])
-      .then(([board, s]) => {
+      .then(([b, s]) => {
         if (cancelled) return
-        setRows(board.players)
-        setChampions(board.champions ?? [])
+        setRows(b.players)
+        setChampions(b.champions ?? [])
         setStats(s)
       })
       .catch((e: Error) => {
@@ -48,7 +54,26 @@ export default function Leaderboard() {
     }
   }, [])
 
+  // Load the cards board lazily, the first time it's opened.
+  useEffect(() => {
+    if (!SLABS_ENABLED || board !== 'cards' || cardRows !== null) return
+    let cancelled = false
+    void getLeaderboard('value', 50)
+      .then((res) => !cancelled && setCardRows(res.rows))
+      .catch(() => !cancelled && setCardRows([]))
+    return () => {
+      cancelled = true
+    }
+  }, [board, cardRows])
+
   const mine = me?.address.toLowerCase()
+  const usd = (micro: string) => {
+    try {
+      return `$${(Number(BigInt(micro)) / 1e6).toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+    } catch {
+      return '$0'
+    }
+  }
 
   return (
     <section className="section">
@@ -59,12 +84,43 @@ export default function Leaderboard() {
           </div>
         </div>
 
+        {/* Swap between the wager (Battles) board and the gacha (Cards) board.
+            Only shown in the merged build; a wager-only launch has one board. */}
+        {SLABS_ENABLED && (
+          <div className="lb__toggle" role="tablist" aria-label="Leaderboard type">
+            <button
+              role="tab"
+              aria-selected={board === 'battles'}
+              className={`lb__toggle-btn${board === 'battles' ? ' lb__toggle-btn--on' : ''}`}
+              onClick={() => setBoard('battles')}
+            >
+              Battles
+            </button>
+            <button
+              role="tab"
+              aria-selected={board === 'cards'}
+              className={`lb__toggle-btn${board === 'cards' ? ' lb__toggle-btn--on' : ''}`}
+              onClick={() => setBoard('cards')}
+            >
+              Cards
+            </button>
+          </div>
+        )}
+
         {error && <Banner kind="error">Could not load the leaderboard: {error}</Banner>}
 
+        {board === 'battles' && (
+        <>
         {/* Real counts from the server, or an honest dash while they load. */}
         <div className="lb__stats card">
           <Stat value={stats?.battles ?? null} label="Battles played" />
-          <Stat value={stats?.players ?? null} label="Players ranked" />
+          {/* Total ETH staked across contested wagers + tournament pools. */}
+          <div>
+            <div className={`stat__value${stats ? '' : ' placeholder'}`}>
+              {stats ? `${formatEth(stats.stakedWei)} ${CURRENCY}` : '—'}
+            </div>
+            <div className="stat__label">Staked</div>
+          </div>
           <Stat value={stats?.liveBattles ?? null} label="Live right now" />
         </div>
 
@@ -184,8 +240,52 @@ export default function Leaderboard() {
             </table>
           </div>
         )}
+        </>
+        )}
 
-
+        {board === 'cards' && (
+          cardRows === null ? (
+            <Spinner label="Loading the leaderboard…" />
+          ) : cardRows.length === 0 ? (
+            <Empty
+              title="No packs opened yet"
+              body="Nobody has opened a pack, so there is nothing to rank. The first pull puts a name here."
+            />
+          ) : (
+            <div className="lb__scroll">
+              <table className="lb">
+                <thead>
+                  <tr>
+                    <th className="lb__rank-h">#</th>
+                    <th>Player</th>
+                    <th className="lb__num lb__mid">Packs</th>
+                    <th className="lb__num" title="Total insured value pulled">Total value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cardRows.map((r, i) => {
+                    const medal = i < 3 ? MEDAL[i] : null
+                    const isMe = mine !== undefined && r.address.toLowerCase() === mine
+                    return (
+                      <tr
+                        key={r.address || `card-${i}`}
+                        className={`${medal ? `lb__row--${medal}` : ''}${isMe ? ' lb__row--me' : ''}`}
+                      >
+                        <td className={`lb__rank${medal ? ` lb__rank--${medal}` : ''}`}>{i + 1}</td>
+                        <td className="lb__player">
+                          <Address value={r.address} className="lb__name" />
+                          {isMe && <span className="lb__me-tag">you</span>}
+                        </td>
+                        <td className="lb__num lb__mid">{r.packsOpened}</td>
+                        <td className="lb__num lb__wins">{usd(r.totalValueUsd)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
       </div>
     </section>
   )

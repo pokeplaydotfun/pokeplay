@@ -14,7 +14,7 @@
  */
 
 /** Display name. Appears in the nav, the footer, page titles and body copy. */
-export const BRAND_NAME: string = import.meta.env.VITE_BRAND_NAME || "Slabs";
+export const BRAND_NAME: string = import.meta.env.VITE_BRAND_NAME || "PokePlay";
 
 /**
  * The full name, for pages that title themselves with it.
@@ -22,7 +22,7 @@ export const BRAND_NAME: string = import.meta.env.VITE_BRAND_NAME || "Slabs";
  * Separate from BRAND_NAME rather than replacing it: "Pokémon World Assets" is right as a
  * page heading and wrong in a nav bar or mid-sentence, and one string cannot be both.
  */
-export const BRAND_FULL: string = import.meta.env.VITE_BRAND_FULL || "Slabs";
+export const BRAND_FULL: string = import.meta.env.VITE_BRAND_FULL || "PokePlay";
 
 /**
  * Namespace for wallet-signed messages. NOT the display name, and deliberately
@@ -49,5 +49,10 @@ export const BRAND_FULL: string = import.meta.env.VITE_BRAND_FULL || "Slabs";
  * Defaults to "PWA" so the existing product keeps signing and verifying
  * exactly what it does today; the second product sets VITE_SIGNING_NS to its
  * own value and its backend .env must carry the matching one.
+ *
+ * ⚠ STAYS "Slabs" EVEN THOUGH THE DISPLAY NAME IS NOW "PokePlay". The deployed backend
+ * sets SIGNING_NS=Slabs, and this string is not a name — it is half of a signature check.
+ * Renaming it here alone would silently break setting a withdraw address and depositing a
+ * card, with nothing in the UI able to say why.
  */
 export const SIGNING_NS: string = import.meta.env.VITE_SIGNING_NS || "Slabs";

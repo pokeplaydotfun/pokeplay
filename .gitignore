@@ -53,3 +53,8 @@ slabs/contracts/cache/
 slabs/contracts/broadcast/
 slabs/backend/tsconfig.tsbuildinfo
 slabs/backend/data/
+
+# Internal operator runbooks — same reason as SESSION-*.md. Procedure notes for handling
+# key material: nothing secret line by line, but not something to publish as a set.
+contracts/ROTATE-DEV-WALLET.md
+scripts/rotate-worker.sh

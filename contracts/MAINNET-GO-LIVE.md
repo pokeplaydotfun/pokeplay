@@ -1,5 +1,12 @@
 # Mainnet go-live — PokePlayEscrow
 
+> ⚠ **These are the DEPLOY-TIME values, kept as a record of what the constructors were
+> actually given. The live roles were ROTATED on 2026-07-29** — owner is now
+> `0x699ff0E24a5de0386d332aE00947746A66032CCf` (cold) and treasury is
+> `0xd631ED63B23204aC30D435048838583E13feAEA0` (hot worker) on BOTH the escrow and the
+> tournament pool. Do not copy the addresses below as current state; see
+> `contracts/ROTATE-DEV-WALLET.md`.
+
 Real money. Every step is run BY YOU from your own machine; the deployer key
 never touches the assistant or the server. Do them in order.
 

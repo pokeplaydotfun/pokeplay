@@ -1,4 +1,4 @@
-import { API_BASE } from '../config'
+import { API_BASE, CURRENCY } from '../config'
 
 const TOKEN_KEY = 'slabshowdown.session'
 
@@ -297,6 +297,55 @@ export function formatUsd(cents: number): string {
 /** A dollar amount (US cents) at a given ETH/USD rate → ETH, or null with no rate. */
 export function usdCentsToEth(cents: number, ethUsd: number | null): number | null {
   return ethUsd && ethUsd > 0 ? cents / 100 / ethUsd : null
+}
+
+/**
+ * Tournament money is quoted in USDG, with the exact ETH underneath.
+ *
+ * READ THIS BEFORE USING IT. Tournaments are settled in NATIVE ETH — the escrow and the
+ * pool hold wei, and the wallet asks for wei. USDG is a display unit here and nothing
+ * more: it is a dollar stablecoin, so a dollar figure and a USDG figure are the same
+ * number, and quoting entry in USDG is only a way of saying "about this much money".
+ *
+ * That is why nothing below ever returns USDG alone. Every caller shows the ETH amount
+ * with it, because ETH is the number the wallet will ask the player to sign, and a page
+ * that shows only a converted figure is a page whose price never matches the prompt.
+ *
+ * Returns null when there is no rate, which is the honest answer — a made-up conversion
+ * on a page where people are about to spend money is worse than no conversion.
+ */
+export function ethToUsdg(eth: number, ethUsd: number | null): number | null {
+  if (!ethUsd || ethUsd <= 0 || !Number.isFinite(eth)) return null
+  return eth * ethUsd
+}
+
+/** A USDG amount → a clean string: "50 USDG", "1,250.50 USDG". Cents only when they exist. */
+export function formatUsdg(amount: number): string {
+  const hasCents = Math.round(amount * 100) % 100 !== 0
+  return `${amount.toLocaleString(undefined, {
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2,
+  })} USDG`
+}
+
+/** US cents → the same figure as USDG. USDG is a dollar stablecoin, so 1 USDG = $1. */
+export function usdCentsToUsdg(cents: number): string {
+  return formatUsdg(cents / 100)
+}
+
+/**
+ * An entry fee, as one string: the USDG figure with the exact ETH in brackets.
+ *
+ * One helper rather than the same expression in four places, because the two halves must
+ * never drift apart. The ETH is not optional — it is what the wallet asks for — so with no
+ * rate this degrades to the ETH alone rather than to a guess.
+ */
+export function entryLabel(feeWei: string, ethUsd: number | null): string {
+  // From wei, not from the formatted string: formatEth truncates at four decimals, and
+  // converting the truncated figure would quietly under-quote a small fee.
+  const usdg = ethToUsdg(Number(BigInt(feeWei || '0')) / 1e18, ethUsd)
+  const eth = `${formatEth(feeWei)} ${CURRENCY}`
+  return usdg == null ? eth : `${formatUsdg(usdg)} (${eth})`
 }
 
 /** A plain ETH number → a trimmed string, e.g. "0.1667" / "2.5" / "0". */

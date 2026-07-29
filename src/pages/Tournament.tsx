@@ -2,7 +2,17 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatEther } from 'viem'
 import { useAccount, usePublicClient, useWriteContract } from 'wagmi'
-import { api, formatEth, formatStart, formatUsd, usdCentsToEth, formatEthAmount, type Team } from '../lib/api'
+import {
+  api,
+  formatStart,
+  formatUsd,
+  usdCentsToEth,
+  formatEthAmount,
+  formatUsdg,
+  usdCentsToUsdg,
+  entryLabel,
+  type Team,
+} from '../lib/api'
 import { useSession } from '../lib/session'
 import { CURRENCY } from '../config'
 import { describeTxError, isUserRejection } from '../lib/escrow'
@@ -107,8 +117,15 @@ function StartClock({ startAt }: { startAt: number }) {
 
 /**
  * The prize-pool headline: the entry pot (exact ETH) plus any hand-paid prize
- * (set in dollars, shown in ETH at the live rate). Shown in ETH with the ~$
- * value underneath. Renders nothing for a free tournament with no added prize.
+ * (set in dollars). Quoted in USDG, with the exact ETH underneath.
+ *
+ * The two lines used to be the other way round — ETH large, "~$" small. Players think in
+ * dollars and the rest of the site prices in USDG, so USDG leads. The ETH line is NOT
+ * decoration and must never be dropped: it is what the pool actually holds and what the
+ * wallet will ask for. With no live rate there is no USDG line at all, and ETH takes the
+ * headline back rather than a converted number being invented.
+ *
+ * Renders nothing for a free tournament with no added prize.
  */
 function PrizePool({ view }: { view: View }) {
   const fee = BigInt(view.entryFeeWei)
@@ -134,13 +151,18 @@ function PrizePool({ view }: { view: View }) {
   return (
     <div className="tn__pool">
       <div className="tn__pool-label">Prize pool</div>
-      <div className="tn__pool-eth">{ethLine}</div>
-      {rate != null && (
-        <div className="tn__pool-usd">~${Math.round(totalUsd).toLocaleString()}</div>
+      {rate != null ? (
+        <>
+          <div className="tn__pool-usdg">{formatUsdg(totalUsd)}</div>
+          <div className="tn__pool-eth-sub">{ethLine}</div>
+        </>
+      ) : (
+        /* No rate, no conversion. The pool holds ETH; that is what gets shown. */
+        <div className="tn__pool-usdg">{ethLine}</div>
       )}
       {hasEntry && hasPrize && (
         <div className="tn__pool-break">
-          {formatEthAmount(entryPotEth)} {CURRENCY} entry pot + {formatUsd(view.prizeUsdCents ?? 0)} added prize
+          {formatEthAmount(entryPotEth)} {CURRENCY} entry pot + {usdCentsToUsdg(view.prizeUsdCents ?? 0)} added prize
         </div>
       )}
     </div>
@@ -450,7 +472,7 @@ export default function Tournament() {
           <div>
             <div className="eyebrow">
               <Link to="/tournaments">Tournaments</Link> · {view.players.length}/{view.maxPlayers}{' '}
-              players · {fee > 0n ? `${formatEth(view.entryFeeWei)} ${CURRENCY}` : 'Free entry'}
+              players · {fee > 0n ? entryLabel(view.entryFeeWei, view.ethUsd) : 'Free entry'}
               {view.status === 'open' && view.startAt != null && (
                 <> · {startPassed ? 'sign-ups closed' : `starts ${untilLabel(view.startAt)}`}</>
               )}
@@ -583,7 +605,13 @@ export default function Tournament() {
                       onClick={() => void join()}
                       disabled={busy || !canJoin}
                     >
-                      {busy ? (step ?? 'Entering…') : fee > 0n ? `Pay ${formatEth(view.entryFeeWei)} ${CURRENCY} & enter` : 'Enter'}
+                      {/* The button names BOTH: the USDG figure the tournament is priced in,
+                          and the exact ETH the wallet is about to ask this player to sign. */}
+                      {busy
+                        ? (step ?? 'Entering…')
+                        : fee > 0n
+                          ? `Pay ${entryLabel(view.entryFeeWei, view.ethUsd)} & enter`
+                          : 'Enter'}
                     </button>
                   )}
                 </div>

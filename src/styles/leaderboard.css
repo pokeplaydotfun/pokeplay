@@ -1,5 +1,34 @@
 /* ---------- leaderboard ---------- */
 
+/* Battles / Cards board switch — a pill segmented control, centered. */
+.lb__toggle {
+  display: flex;
+  width: fit-content;
+  gap: 4px;
+  margin: 0 auto 24px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+}
+.lb__toggle-btn {
+  padding: 8px 22px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--fast), color var(--fast);
+}
+.lb__toggle-btn:hover { color: var(--ink); }
+.lb__toggle-btn--on {
+  background: var(--ink);
+  color: var(--white);
+}
+
 .lb__stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAccount, useBalance, useDisconnect, useSwitchChain } from 'wagmi'
+import { useAccount, useBalance, useDisconnect, useReadContract, useSwitchChain } from 'wagmi'
 import { formatEther } from 'viem'
 import { useSession } from '../lib/session'
 import { shortAddr } from '../lib/api'
-import { CHAIN_ID, CHAIN_LABEL, CURRENCY } from '../config'
+import { CHAIN_ID, CHAIN_LABEL, CURRENCY, SLABS_ENABLED } from '../config'
+import { CONTRACTS } from '../slabs/chain'
+import { ERC20_ABI } from '../slabs/abis'
+import usdgIcon from '/slabs/usdg.png'
 import { WalletModal } from './WalletModal'
 import { Address } from './Address'
 
@@ -33,6 +36,13 @@ function EthIcon({ size = 15 }: { size?: number }) {
 function fmtEth(value: bigint): string {
   return Number(formatEther(value)).toLocaleString(undefined, {
     maximumFractionDigits: 4,
+  })
+}
+
+/** USDG is 6dp (verified on-chain), so format against 1e6, not 1e18. */
+function fmtUsdg(value: bigint): string {
+  return (Number(value) / 1e6).toLocaleString(undefined, {
+    maximumFractionDigits: 2,
   })
 }
 
@@ -67,6 +77,17 @@ export function AccountMenu() {
   const { switchChain, isPending: switching } = useSwitchChain()
   const { me, signedIn, signingIn, signIn, signOut } = useSession()
   const { data: balance } = useBalance({ address, chainId: CHAIN_ID })
+
+  // USDG (the Slabs stablecoin) sits under the ETH balance in the merged build.
+  // Gated on SLABS_ENABLED so a plain wager-only launch never shows it.
+  const { data: usdgBalance } = useReadContract({
+    address: CONTRACTS.usdg,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    chainId: CHAIN_ID,
+    query: { enabled: Boolean(SLABS_ENABLED && address && CONTRACTS.usdg) },
+  })
 
   const wrongNetwork = isConnected && chainId !== undefined && chainId !== CHAIN_ID
 
@@ -153,12 +174,37 @@ export function AccountMenu() {
               <EthIcon />
               {balance ? fmtEth(balance.value) : '—'} {CURRENCY}
             </span>
+            {SLABS_ENABLED && (
+              <span className="acct__balance-amt">
+                <img className="usdg-icon" src={usdgIcon} alt="" width={15} height={15} />
+                {usdgBalance !== undefined ? fmtUsdg(usdgBalance as bigint) : '—'} USDG
+              </span>
+            )}
           </div>
 
           <div className="acct__items">
             <Link className="acct__item" to="/profile" role="menuitem" onClick={() => setOpen(false)}>
               <span className="acct__icon">◎</span> Profile
             </Link>
+
+            {/* Card account actions — only in the merged (Slabs-on) build. These
+                route into the ported gacha's own pages under /cards. */}
+            {SLABS_ENABLED && (
+              <>
+                <Link className="acct__item" to="/cards/messages" role="menuitem" onClick={() => setOpen(false)}>
+                  <span className="acct__icon">✉</span> Messages
+                </Link>
+                <Link className="acct__item" to="/cards/deposit" role="menuitem" onClick={() => setOpen(false)}>
+                  <span className="acct__icon">↧</span> Deposit
+                </Link>
+                <Link className="acct__item" to="/cards/withdraw" role="menuitem" onClick={() => setOpen(false)}>
+                  <span className="acct__icon">↥</span> Withdraw
+                </Link>
+                <Link className="acct__item" to="/cards/transfer" role="menuitem" onClick={() => setOpen(false)}>
+                  <span className="acct__icon">⇄</span> Transfer cards
+                </Link>
+              </>
+            )}
 
             {/* Disconnecting also ends the session, so this is the single, clean
                 way out — a separate "Sign out" that left the wallet connected

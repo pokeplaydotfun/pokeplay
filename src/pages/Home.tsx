@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, loadPokedex, type Species } from '../lib/api'
 import { Mark, TypeBadge } from '../components/ui'
-import { FAQ, HERO, STEPS } from '../config'
+import { Address } from '../components/Address'
+import { FAQ, HERO, STEPS, TOKEN } from '../config'
 
 type Stats = { battles: number; players: number; openWagers: number; liveBattles: number }
 
 export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [showcase, setShowcase] = useState<Species[]>([])
-  const [dexCounts, setDexCounts] = useState({ species: 0 })
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   useEffect(() => {
@@ -19,7 +19,6 @@ export default function Home() {
         // A recognisable spread of starters and fan favourites.
         const ids = [6, 25, 9, 3, 150, 143, 94, 65]
         setShowcase(ids.map((i) => d.species.find((s) => s.id === i)!).filter(Boolean))
-        setDexCounts({ species: d.species.length })
       })
       .catch(() => setShowcase([]))
   }, [])
@@ -40,9 +39,7 @@ export default function Home() {
         { value: stats!.players.toLocaleString(), label: 'Trainers' },
         { value: stats!.openWagers.toLocaleString(), label: 'Open wagers' },
       ]
-    : [
-        { value: dexCounts.species ? String(dexCounts.species) : '151', label: 'Pokémon' },
-      ]
+    : []
 
   return (
     <>
@@ -68,24 +65,31 @@ export default function Home() {
 
           <p className="hero__sub">{HERO.sub}</p>
 
-          <div
-            className={`hero__stats${headline.length === 1 ? ' hero__stats--single' : ''}`}
-            style={{ gridTemplateColumns: `repeat(${headline.length}, 1fr)` }}
-          >
-            {headline.map((item) => (
-              <div className="hero__stat" key={item.label}>
-                <div className="hero__stat-value">{item.value}</div>
-                <div className="hero__stat-label">{item.label}</div>
-              </div>
-            ))}
+          {headline.length > 0 && (
+            <div
+              className="hero__stats"
+              style={{ gridTemplateColumns: `repeat(${headline.length}, 1fr)` }}
+            >
+              {headline.map((item) => (
+                <div className="hero__stat" key={item.label}>
+                  <div className="hero__stat-value">{item.value}</div>
+                  <div className="hero__stat-label">{item.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Token contract address — click to copy; shows TBA until launch. */}
+          <div className="hero__ca">
+            <span className="hero__ca-tag">CA:</span>
+            {TOKEN.address
+              ? <Address value={TOKEN.address as `0x${string}`} />
+              : <span className="hero__ca-tba">TBA</span>}
           </div>
 
           <div className="hero__cta">
             <Link className="btn btn--dark" to="/play">
               Start playing <span aria-hidden="true">→</span>
-            </Link>
-            <Link className="btn btn--ghost" to="/leaderboard">
-              Leaderboard
             </Link>
           </div>
         </div>

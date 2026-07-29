@@ -1067,11 +1067,35 @@ app.get('/api/stats', (_req, res) => {
   `).get({ bot: BOT_ADDRESS, minOpponents: MIN_OPPONENTS }) as { n: number }).n
   const openWagers = (db.prepare("SELECT COUNT(*) AS n FROM wagers WHERE status = 'open' AND expires_at > ?")
     .get(now()) as { n: number }).n
+
+  // Total ETH staked on the site. Two sources, summed with BigInt because wei
+  // totals overflow SQLite's 64-bit integer:
+  //   • head-to-head wagers — both trainers escrow the stake, so a contested
+  //     wager locks 2× stake_wei. Only wagers that actually reached a contest
+  //     count (matched/playing/settled); open and cancelled ones aren't staked.
+  //   • tournament prize pools — every entry pays the entry fee into the pool,
+  //     so the pool of a running/finished tournament is its total staked ETH.
+  let stakedWei = 0n
+  for (const r of db.prepare(
+    "SELECT stake_wei FROM wagers WHERE stake_wei != '0' AND status IN ('matched','playing','settled')",
+  ).all() as { stake_wei: string }[]) {
+    try { stakedWei += BigInt(r.stake_wei) * 2n } catch { /* skip malformed */ }
+  }
+  for (const r of db.prepare(`
+    SELECT t.entry_fee_wei AS fee
+    FROM tournament_entries e
+    JOIN tournaments t ON t.id = e.tournament_id
+    WHERE t.entry_fee_wei != '0' AND t.status IN ('running', 'finished')
+  `).all() as { fee: string }[]) {
+    try { stakedWei += BigInt(r.fee) } catch { /* skip malformed */ }
+  }
+
   res.json({
     battles, players, openWagers,
     liveBattles: activeRoomCount(),
     queued: queue.queueSize(),
     turnSeconds: TURN_SECONDS,
+    stakedWei: stakedWei.toString(),
   })
 })
 

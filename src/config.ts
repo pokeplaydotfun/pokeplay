@@ -78,10 +78,30 @@ export const TOKEN = {
  */
 export const SLABS_ENABLED = import.meta.env.VITE_SLABS_ENABLED === 'true'
 
-export const NAV = [
+/** A plain link, or a labelled dropdown of links. */
+export type NavItem =
+  | { label: string; to: string }
+  | { label: string; items: { label: string; to: string }[] }
+
+export const NAV: NavItem[] = [
   { label: 'Play', to: '/play' },
   { label: 'Tournaments', to: '/tournaments' },
-  ...(SLABS_ENABLED ? [{ label: 'Slabs', to: '/slabs' }] : []),
+  // The ported gacha, presented as native pokeplay: a "Cards" dropdown for the
+  // marketplace side and a separate "Gacha" button for opening packs. Both are
+  // gated on SLABS_ENABLED so an ordinary deploy never shows them.
+  ...(SLABS_ENABLED
+    ? ([
+        {
+          label: 'Cards',
+          items: [
+            { label: 'Collection', to: '/cards/collection' },
+            { label: 'Marketplace', to: '/cards/marketplace' },
+            { label: 'How it works', to: '/guide#cards' },
+          ],
+        },
+        { label: 'Gacha', to: '/cards/gacha' },
+      ] satisfies NavItem[])
+    : []),
   { label: 'Leaderboard', to: '/leaderboard' },
   { label: 'Token', to: '/token' },
   { label: 'Guide', to: '/guide' },
@@ -89,20 +109,20 @@ export const NAV = [
 
 export const HERO = {
   eyebrows: [`LIVE ON ${CHAIN_LABEL.toUpperCase()}`],
-  headline: ['Build a team of six'],
-  sub: `Build a team of six from the original 151, play for free or stake ${CURRENCY}, and battle other players. The winner takes the whole pot, settled on ${CHAIN_LABEL}.`,
+  headline: ['PokePlay'],
+  sub: `Build your team from the original 151 and challenge other players in free matches, ${CURRENCY}-staked battles and tournaments.`,
 }
 
 export const STEPS = [
   {
     n: '01',
-    title: 'Build your team',
+    title: 'Team',
     body: 'Six Pokémon from the original 151, four moves each.',
   },
   {
     n: '02',
-    title: 'Post or accept a match',
-    body: `Create a match for free or stake your ${CURRENCY}.`,
+    title: 'Match',
+    body: `Create a match for free, stake your ${CURRENCY} and participate in tournaments.`,
   },
   {
     n: '03',

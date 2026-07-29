@@ -100,7 +100,7 @@ contract MirrorNFT is ERC721, Ownable, EIP712, ReentrancyGuard {
     }
 
     constructor(address usdg_, address owner_, address operator_, address feeRecipient_)
-        ERC721("Slabs", "SLABS")
+        ERC721("POKEPLAY", "PLAY")
         Ownable(owner_)
         // EIP712 domain is PROTOCOL, not branding — the backend re-derives "MirrorNFT"/"1"
         // to verify quote/unwrap signatures. Leave it unchanged across rebrands/redeploys.

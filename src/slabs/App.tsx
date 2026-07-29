@@ -12,7 +12,6 @@ import {
   type SellStage,
   getOrder,
   getPool,
-  getRecentRips,
   rip as ripApi,
   type Machine,
   type Order,
@@ -24,7 +23,6 @@ import {
   displayCardName,
   ownedToDetail,
   cardValueLimitMessage,
-  type FeedEntry,
   normalizeTier,
   machineLabel,
   getDepositsEnabled,
@@ -46,9 +44,9 @@ import { useBuyPack } from "./useBuyPack.ts";
 import { useSellBack } from "./useSellBack.ts";
 import { CAN_TRANSACT } from "./chain.ts";
 import { humanError } from "./errors.ts";
-import logo from "/slabs/logo.png";
 import usdgIcon from "/slabs/usdg.png";
 import { BRAND_NAME, BRAND_FULL } from "./brand.ts";
+import { Mark } from "../components/ui";
 
 type Tier = "common" | "uncommon" | "rare" | "epic";
 
@@ -484,7 +482,7 @@ function RipStage({
                 */}
                 <span className="pack-seam" aria-hidden="true" />
                 <div className="pack-seal">
-                  <img className="pack-logo" src={logo} alt="" />
+                  <span className="pack-logo"><Mark size={44} /></span>
                   <span>Sealed</span>
                 </div>
               </div>
@@ -753,11 +751,11 @@ type Tab = "home" | "floor" | "market" | "collection" | "how" | "profile" | "set
  * The host must serve index.html for these paths (SPA fallback) or a hard refresh 404s.
  */
 /**
- * The Slabs section is mounted inside pokeplay under this base. Every route
+ * The Cards section is mounted inside pokeplay under this base. Every route
  * below is prefixed with it, so the hand-rolled History-API routing lives
- * entirely under /slabs and never collides with pokeplay's own react-router.
+ * entirely under /cards and never collides with pokeplay's own react-router.
  */
-export const SLABS_BASE = "/slabs";
+export const SLABS_BASE = "/cards";
 
 const TAB_PATH: Record<Tab, string> = {
   /*
@@ -809,9 +807,9 @@ function tabForPath(pathname: string): Tab {
   return assetIdForPath(pathname) ? "market" : "home";
 }
 
-/** /slabs/marketplace/<tokenId> renders one card. Returns null for every other path. */
+/** /cards/marketplace/<tokenId> renders one card. Returns null for every other path. */
 export function assetIdForPath(pathname: string): string | null {
-  const m = /^\/slabs\/marketplace\/([A-Za-z0-9_-]+)\/?$/.exec(pathname);
+  const m = /^\/cards\/marketplace\/([A-Za-z0-9_-]+)\/?$/.exec(pathname);
   return m ? m[1]! : null;
 }
 
@@ -867,7 +865,6 @@ export default function App() {
   const panelRef = useRef<HTMLElement | null>(null);
   const floorRef = useRef<HTMLDivElement | null>(null);
   const machinesRef = useRef<HTMLDivElement | null>(null);
-  const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [order, setOrder] = useState<Order | null>(null);
   const [owned, setOwned] = useState<OwnedCard[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -1099,20 +1096,20 @@ export default function App() {
       .catch(() => !stale && setPool([]))
       .finally(() => !stale && setPoolLoading(false));
 
-    void getRecentRips(machineId)
-      .then((f) => !stale && setFeed(f))
-      .catch(() => !stale && setFeed([]));
-
     return () => {
       stale = true;
     };
   }, [machineId]);
 
   /**
-   * Keep the card list the same height as the machine panel, so both columns finish on the
-   * same line. A fixed max-height leaves a large dead gap under the shorter column whenever
-   * the panel grows or shrinks (different odds rows, a longer recent-rips feed), and the
-   * panel's height is not knowable in CSS from the other column.
+   * Keep the card list at least as tall as the machine panel, so the two columns finish on
+   * the same line whenever the panel is the taller of the two. The panel's height is not
+   * knowable in CSS from the other column, hence the measurement.
+   *
+   * The floor is a real floor, not just a guard against a mid-measurement zero: the panel
+   * lost the recent-pulls feed, and matching it exactly after that cut the card grid from
+   * four rows to two. The list keeps its own viewport-proportional height and only grows
+   * past it to meet a taller panel.
    */
   useEffect(() => {
     const panel = panelRef.current;
@@ -1126,8 +1123,9 @@ export default function App() {
       // above the list carries a bottom margin that its own height does not include, and
       // subtracting heights left the list overshooting the panel by exactly that margin.
       const target = panel.getBoundingClientRect().bottom - scroller.getBoundingClientRect().top;
-      // Never collapse to nothing if the panel is still measuring.
-      floor.style.setProperty("--match-panel", `${Math.max(420, Math.round(target))}px`);
+      // The list's own height, matching the CSS default — the panel can only raise it.
+      const own = Math.min(Math.round(window.innerHeight * 0.74), 820);
+      floor.style.setProperty("--match-panel", `${Math.max(own, Math.round(target))}px`);
     };
 
     sync();
@@ -1138,7 +1136,7 @@ export default function App() {
       ro.disconnect();
       window.removeEventListener("resize", sync);
     };
-  }, [tab, machineId, feed.length, pool.length]);
+  }, [tab, machineId, pool.length]);
 
   /**
    * Load the next page when the sentinel scrolls into view.
@@ -1457,6 +1455,9 @@ export default function App() {
 
   return (
     <>
+      {/* Nav suppressed — pokeplay's own header (with the Cards dropdown + Gacha
+          button) replaces this bar now that Slabs lives inside pokeplay. */}
+      {false && (
       <div className="nav-bar">
         <div className="nav-inner">
           {/* The wordmark goes home. It pointed at "floor" from when floor WAS "/", and
@@ -1464,7 +1465,7 @@ export default function App() {
               every visitor treats as "take me back to the start" dropped them into a
               purchase flow instead. */}
           <a className="brand" href={TAB_PATH.home} onClick={navTo("home")} aria-label={BRAND_FULL}>
-            <img src={logo} alt="" />
+            <Mark size={30} />
             <span className="brand-word">{BRAND_NAME}</span>
           </a>
           {/*
@@ -1510,6 +1511,7 @@ export default function App() {
           />
         </div>
       </div>
+      )}
 
       <div className="page">
         <NetworkGuard />
@@ -1635,23 +1637,25 @@ export default function App() {
 
         {tab === "floor" && (
           <>
-            {/* Centred: with a single child, .section-head's space-between collapses to
-                left-aligned, which left the heading hanging off the corner of a row of
-                evenly spaced tiles. */}
-            <div className="section-head centered" ref={machinesRef}>
-              <h2>Choose a machine</h2>
+            {/*
+              A masthead rather than a centred title. The heading names the section and
+              the rule carries the eye to the machine count on the right, so the row does
+              some work instead of floating a lone word over the tiles.
+            */}
+            <div className="gc-head" ref={machinesRef}>
+              <h2>Gacha</h2>
+              <span className="gc-rule" aria-hidden="true" />
+              <span className="gc-head-meta">{machines.length} Gachas</span>
             </div>
 
             <div className="pills">
               {machines.map((m) => (
                 <button key={m.id} className="pill" data-active={m.id === machineId} onClick={() => setSelected(m.id)}>
                   <span className="pill-mark">
-                    <img src={logo} alt="" />
+                    <Mark size={15} />
                   </span>
-                  <span style={{ textAlign: "left" }}>
-                    <span className="pill-name" style={{ display: "block" }}>
-                      {machineLabel(m.id)}
-                    </span>
+                  <span className="pill-text">
+                    <span className="pill-name">{machineLabel(m.id)}</span>
                     <span className="pill-price">
                       <Usdg base={m.priceUsdg} />
                     </span>
@@ -1662,8 +1666,9 @@ export default function App() {
 
             <div className="floor" ref={floorRef} style={{ marginTop: 18 }}>
               <div>
-                <div className="section-head centered" style={{ marginTop: 0 }}>
-                  <h2>Top cards in this machine</h2>
+                <div className="gc-label-row">
+                  <h2 className="gc-label">Top Hits</h2>
+                  <span className="gc-rule" aria-hidden="true" />
                 </div>
 
                 <div className="pool-scroll" ref={poolScrollRef}>
@@ -1728,31 +1733,35 @@ export default function App() {
               {machine && (
                 <aside className="panel" ref={panelRef}>
                   {/*
-                    The pack itself, at size, above the price and the button. This panel
-                    used to open on a text title, which made the most important object on
-                    the page — the thing being bought — invisible until the reveal.
+                    The stage: the pack at size with the machine's name and price set on the
+                    same surface, full-bleed to the panel edge.
 
-                    Our own art (see the .pack rules), not Collector Crypt's pack design.
+                    It used to be three stacked blocks inside one padded card — pack, then a
+                    centred name, then a centred price — which is the shape every storefront
+                    template ships. Reading them as one framed object instead makes the panel
+                    look like a machine rather than a form, and leaves the padded body below
+                    for the things you act on.
+
+                    Our own pack art (see the .panel-pack rules), not Collector Crypt's.
                   */}
-                  <div className="panel-pack" aria-hidden="true">
-                    <div className="panel-pack-art">
-                      <img src={logo} alt="" />
+                  <div className="panel-stage">
+                    <div className="panel-pack" aria-hidden="true">
+                      <div className="panel-pack-art">
+                        <Mark size={40} />
+                      </div>
                     </div>
-                  </div>
 
-                  {/*
-                    Name and price as the headline, and the price set large.
-                    
-                    It used to sit inside the button as a chip, which buried the single most
-                    important number on the page in the control you press. Price is a fact
-                    about the machine; the button is an action. Separating them lets someone
-                    compare machines without reading buttons.
-                  */}
-                  <div className="panel-head">
-                    <div className="panel-name">{machineLabel(machine.id)}</div>
-                    <div className="panel-price">
-                      <Usdg base={totalWithFee(machine.id, machine.priceUsdg)} />
-                      <span className="panel-price-unit">USDG</span>
+                    {/*
+                      Price stays out of the button. It is a fact about the machine; the
+                      button is an action, and someone comparing machines should not have to
+                      read buttons to do it.
+                    */}
+                    <div className="panel-plate">
+                      <div className="panel-name">{machineLabel(machine.id)}</div>
+                      <div className="panel-price">
+                        <Usdg base={totalWithFee(machine.id, machine.priceUsdg)} />
+                        <span className="panel-price-unit">USDG</span>
+                      </div>
                     </div>
                   </div>
 
@@ -1840,41 +1849,21 @@ export default function App() {
                     </div>
 
                     {/*
-                      A compact legend, not a table. This was four rows of
-                      dot / name / range / percent — thirty-two words to say what the bar
-                      above already shows. The value bands live on How it works, where
-                      someone actually comparing them will be.
+                      Four spec cells, not chips. The percentage leads and the tier name sits
+                      under it in caps, each cell capped by its own tier colour — the bar
+                      above shows the shape, this row gives the numbers somewhere to line
+                      up so two machines can be compared column by column. The value bands
+                      live on How it works, where someone actually comparing them will be.
                     */}
                     <div className="odds-legend">
                       {(["common", "uncommon", "rare", "epic"] as Tier[]).map((t) => (
-                        <span className="odds-chip" key={t}>
-                          <i style={{ background: TIER_COLOR[t] }} />
-                          {((machine.odds[t] ?? 0) * 100).toFixed(0)}%
+                        <span className="odds-chip" key={t} style={{ ["--tier" as string]: TIER_COLOR[t] }}>
+                          <b>{((machine.odds[t] ?? 0) * 100).toFixed(0)}%</b>
                           <em>{t}</em>
                         </span>
                       ))}
                     </div>
                   </div>
-
-
-                  {/* Back inside the panel, so it and the card grid share one horizontal
-                      line. Text only — the thumbnails were the heaviest part of the least
-                      important section. */}
-                  {feed.length > 0 && (
-                    <div className="panel-section">
-                      <div className="odds-head">
-                        <span className="eyebrow">Recent pulls</span>
-                      </div>
-                      <div className="feed">
-                        {feed.slice(0, 6).map((f) => (
-                          <div className="feed-row" key={f.id} style={{ ["--tier" as string]: TIER_COLOR[f.tier] }}>
-                            <span className="feed-name">{displayCardName(f.name)}</span>
-                            <span className="feed-value">{usd(f.insuredValueUsd)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                 </aside>
               )}
@@ -2272,7 +2261,9 @@ export default function App() {
           </Suspense>
         )}
 
-        <SiteFooter />
+        {/* Suppressed: pokeplay's own Footer renders on /cards now (see Shell in
+            src/App.tsx), so the section's own footer would double up. */}
+        {false && <SiteFooter />}
       </div>
 
       {needsWallet && (
@@ -2412,7 +2403,7 @@ function SiteFooter() {
       </div>
 
       <p className="footer-legal">
-        <img className="footer-logo" src={logo} alt="" />© 2026 {BRAND_NAME}. All rights
+        <span className="footer-logo"><Mark size={20} /></span>© 2026 {BRAND_NAME}. All rights
         reserved.
       </p>
     </footer>

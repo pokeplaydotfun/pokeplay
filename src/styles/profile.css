@@ -38,7 +38,17 @@
 }
 .profile__tile--champion .profile__tile-value { color: var(--gold); }
 .profile__tile--champion .profile__tile-label { color: var(--gold); }
-.profile__tile-trophy { margin-right: 6px; font-size: 1.2rem; }
+
+/* Tournaments won sits on its own centered row beneath the headline stats. */
+.profile__champion {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.profile__champion .profile__tile {
+  min-width: 220px;
+  text-align: center;
+}
 
 .profile__tile-value--up {
   color: #226b3a;
@@ -76,11 +86,24 @@
   }
 }
 
+/*
+ * Identity across the top, then Teams and Battle history side by side.
+ *
+ * This was two independent columns — identity + teams stacked on the left, battle history
+ * alone on the right. Because the columns filled independently, Battle history started
+ * level with the identity card and Teams began somewhere halfway down beside it, so the
+ * two lists never shared a line. One grid with the identity panel spanning both tracks
+ * puts them on the same row, tops aligned.
+ */
 .profile__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
   align-items: start;
+}
+
+.profile__identity {
+  grid-column: 1 / -1;
 }
 
 .profile__col {
@@ -219,6 +242,41 @@
   padding: 0;
   display: grid;
   gap: 2px;
+}
+
+/*
+ * Match history scrolls inside its own panel once it outgrows it.
+ *
+ * Without a cap, a player with a few hundred finished matches turns the profile into a
+ * page whose only content past the first screen is one list — and it drags the panel
+ * beside it out of alignment for its whole length.
+ *
+ * `overscroll-behavior: contain` is the part that keeps it from interfering with the rest
+ * of the site: reaching either end of this list stops there instead of handing the
+ * momentum on to the page behind it, so a scroll aimed at the matches never scrolls the
+ * document out from under the cursor.
+ */
+.profile__matches {
+  max-height: 460px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Room for the scrollbar so it never sits on top of a row. */
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.profile__matches::-webkit-scrollbar { width: 8px; }
+.profile__matches::-webkit-scrollbar-track { background: transparent; }
+.profile__matches::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.profile__matches::-webkit-scrollbar-thumb:hover {
+  background: var(--faint);
+  background-clip: content-box;
 }
 
 .profile__teams li,
@@ -402,4 +460,108 @@
 @media (max-width: 480px) {
   .profile__stats { grid-template-columns: repeat(2, 1fr); gap: 16px 10px; }
   .profile__namerow { flex-direction: column; }
+}
+
+/* ---------- cards (Slabs) ---------- */
+
+.profile__cards { margin-top: 22px; }
+
+.profile__cardstats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 16px 0 22px;
+}
+.profile__cardstat {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--cream);
+  text-align: center;
+}
+.profile__cardstat-value {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.profile__cardstat-value--best { color: var(--red); }
+.profile__cardstat-label {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile__h4 {
+  font-family: var(--display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+/*
+ * The empty state, centred in its own block.
+ *
+ * Heading top-left with one grey line under it left the whole lower half of a full-width
+ * panel blank, which reads as a section that failed rather than one with nothing in it
+ * yet. Centred, with room around it, it reads as an answer.
+ */
+.profile__packhist--empty {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  padding: 18px 0 22px;
+}
+.profile__packhist--empty .profile__h4 { margin-bottom: 8px; }
+.profile__packhist--empty .profile__hint { margin-top: 0; }
+
+.profile__packs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pack {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+.pack:last-child { border-bottom: none; }
+.pack__tier {
+  text-transform: capitalize;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #fff;
+}
+.pack__tier--common { background: #7c8595; }
+.pack__tier--uncommon { background: #2e9e56; }
+.pack__tier--rare { background: #2f7fd1; }
+.pack__tier--epic { background: #8b57d4; }
+.pack__name {
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pack__grade { color: var(--faint); font-size: 0.8rem; }
+.pack__value { font-weight: 700; color: var(--ink); }
+
+@media (max-width: 560px) {
+  .profile__cardstats { grid-template-columns: 1fr; }
+  .pack { grid-template-columns: auto 1fr auto; }
+  .pack__grade, .pack__date { display: none; }
 }

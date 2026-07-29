@@ -203,6 +203,17 @@
   color: var(--gold);
   font-weight: 700;
 }
+/*
+ * The headline is the USDG figure; the exact ETH sits under it.
+ *
+ * These two swapped places — it used to be ETH large with a small "~$" line beneath. The
+ * ETH line keeps a readable size rather than shrinking to a footnote: it is the amount the
+ * pool actually holds and the amount a wallet will ask for, so it has to stay checkable.
+ *
+ * `.tn__pool-eth` is kept as an alias of the headline for any older markup that still uses
+ * it — with no rate, the ETH figure IS the headline.
+ */
+.tn__pool-usdg,
 .tn__pool-eth {
   font-family: var(--display);
   font-size: clamp(1.7rem, 5vw, 2.4rem);
@@ -211,6 +222,7 @@
   color: var(--ink);
   line-height: 1.1;
 }
+.tn__pool-eth-sub,
 .tn__pool-usd { font-size: 15px; font-weight: 600; color: var(--muted); }
 .tn__pool-break { margin-top: 6px; font-size: 12.5px; color: var(--faint); }
 

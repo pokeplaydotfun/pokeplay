@@ -128,6 +128,41 @@
   color: var(--muted);
 }
 
+/* ---- card rewards (merged build) ---- */
+
+.tk__who {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.tk__who-item {
+  padding: 22px 20px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.tk__who-item h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.tk__who-item p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.tk__who-note {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--faint);
+}
+@media (max-width: 560px) {
+  .tk__who { grid-template-columns: 1fr; }
+}
+
 /* ---- fine print ---- */
 
 .tk__fine {

@@ -320,6 +320,86 @@ button {
 .nav a.nav--active { opacity: 1; font-weight: 600; }
 .nav a.nav--active::after { transform: scaleX(1); }
 
+/* ---- nav dropdown (Cards) ---- */
+.navdd {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.navdd__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.94rem;
+  font-weight: 500;
+  color: var(--ink);
+  opacity: 0.72;
+  padding: 6px 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--fast);
+}
+.navdd__btn:hover,
+.navdd--open .navdd__btn { opacity: 1; }
+.navdd__btn.nav--active { opacity: 1; font-weight: 600; }
+.navdd__caret {
+  font-size: 0.66em;
+  transition: transform var(--fast);
+}
+.navdd--open .navdd__caret { transform: rotate(180deg); }
+
+.navdd__menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--fast), transform var(--fast);
+  z-index: 60;
+}
+.navdd:hover .navdd__menu,
+.navdd--open .navdd__menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+/* Invisible bridge across the gap between the trigger and the menu, so moving the
+   mouse down into the menu doesn't cross a dead zone that drops the :hover. */
+.navdd__menu::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 0;
+  right: 0;
+  height: 12px;
+}
+.navdd__menu a {
+  position: static;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 0.9rem;
+  opacity: 0.82;
+}
+.navdd__menu a::after { display: none; }
+.navdd__menu a:hover { opacity: 1; background: var(--cream); }
+.navdd__menu a.navdd__item--active {
+  opacity: 1;
+  font-weight: 600;
+  background: var(--cream);
+}
+
 .header__right {
   display: flex;
   align-items: center;
@@ -360,6 +440,39 @@ button {
   .nav--open a {
     padding: 13px 0;
     border-bottom: 1px solid var(--line);
+  }
+  /* The Cards dropdown collapses into the stacked mobile menu: the trigger is a
+     full-width row and its links reveal inline beneath it when tapped. */
+  .nav--open .navdd {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .nav--open .navdd__btn {
+    justify-content: space-between;
+    width: 100%;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.94rem;
+  }
+  .nav--open .navdd__menu {
+    position: static;
+    transform: none;
+    display: none;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    min-width: 0;
+    padding: 0 0 0 14px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .nav--open .navdd--open .navdd__menu { display: flex; }
+  .nav--open .navdd__menu a {
+    padding: 13px 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
   }
 }
 
@@ -482,6 +595,45 @@ button {
 .hero__cta-note {
   font-size: 0.88rem;
   color: var(--faint);
+}
+
+/*
+ * Token contract-address pill in the hero — click to copy.
+ *
+ * Deliberately IDENTICAL to the token page's `.tk__ca` pill (styles/token.css): the same
+ * address, in two places, that used to be set in two different sizes and weights — a big
+ * bold "CA: TBA" here and a small monospace one there. Same object, same treatment.
+ *
+ * Kept as its own rules rather than reusing the .tk__ca classes because token.css is
+ * imported by the token route's chunk, so those class names are not guaranteed to be
+ * loaded when the homepage paints. If one of the two changes, change both.
+ */
+.hero__ca {
+  margin: 26px auto 0;
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+.hero__ca-tag {
+  color: var(--faint);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.hero__ca-tba {
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+.hero__ca .addr__text {
+  font-size: 13px;
 }
 
 /* ---------- stat primitives ---------- */
@@ -821,6 +973,13 @@ button {
 .footer .brand {
   font-size: 1.05rem;
   gap: 9px;
+}
+
+.footer__legal {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--faint);
 }
 
 /* ---------- social ---------- */
@@ -1394,6 +1553,14 @@ button {
   flex-shrink: 0;
   display: inline-block;
   vertical-align: middle;
+}
+
+.usdg-icon {
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 50%;
+  object-fit: contain;
 }
 
 .acct__items {

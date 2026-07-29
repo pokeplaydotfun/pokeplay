@@ -92,8 +92,9 @@ snapshot_neighbours
 
 say "Building the frontend"
 # The API is same-origin in production, so the base URL is empty.
-# Slabs (the ported gacha) is switched ON here and pointed at its backend via the
-# Caddy subpath; its contract addresses are baked into src/slabs/chain.ts.
+# Slabs (the ported gacha) is LIVE — the merged section is on. It talks to its backend
+# via the Caddy subpath. To hide it again, set VITE_SLABS_ENABLED=false (and drop the
+# API url); the section is gated on SLABS_ENABLED so that ships the wager site clean.
 VITE_API_BASE="" VITE_SLABS_ENABLED=true VITE_API_URL="https://${DOMAIN}/slabs-api" npm run build
 
 say "Shipping files"

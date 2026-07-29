@@ -185,6 +185,9 @@ re-wire `config.ts` + server `.env` to the new address.
 ## DEPLOYED (mainnet, Robinhood Chain 4663) — Jul 23 — ⚠ v1, SUPERSEDED by v2 source
 
 - **Pool: `0x5C721E6BC4f40de8a16d8FE663d315c4407007A4`** — verified on Blockscout.
+- ⚠ ROTATED 2026-07-29: **owner = `0x699ff0E24a5de0386d332aE00947746A66032CCf`** (cold),
+  **treasury = `0xd631ED63B23204aC30D435048838583E13feAEA0`** (hot worker). The line below
+  records the DEPLOY-TIME configuration; see `contracts/ROTATE-DEV-WALLET.md`.
 - owner = treasury = `0x2fD76b95e1CdaF43264a1459C41410f22F942aB6` (same hot wallet
   as the escrow, per the operator's decision — do NOT nag about splitting).
 - arbiter = `0xE18798dd9dabD03b0df4BdA61D3b5E7B805bEc85` (the server's key, same as

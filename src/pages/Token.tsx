@@ -1,4 +1,4 @@
-import { EXPLORER, TOKEN } from '../config'
+import { EXPLORER, TOKEN, SLABS_ENABLED } from '../config'
 import { Address } from '../components/Address'
 import '../styles/token.css'
 
@@ -26,7 +26,7 @@ const PLAN = [
   },
   {
     n: '03',
-    title: 'Players win prizes',
+    title: 'Prizes',
     body: 'Play the tournaments and compete for those prizes.',
   },
 ]
@@ -42,9 +42,8 @@ export default function Token() {
           <div>
             <h2>{TOKEN.ticker}</h2>
             <p className="lede">
-              Our token launched on {TOKEN.launchpad} generates fees which are used to fund daily
-              tournaments, giving players the chance to compete for prizes simply by playing the
-              game.
+              Our token launched generates fees which are used to fund daily tournaments, giving
+              players the chance to compete for prizes simply by playing the game.
             </p>
           </div>
         </div>
@@ -89,6 +88,33 @@ export default function Token() {
             ))}
           </ol>
         </div>
+
+        {/* ---- card rewards: merged build only ---- */}
+        {SLABS_ENABLED && (
+          <div className="tk__block">
+            <div className="tk__block-head">
+              <div className="eyebrow">Cards</div>
+              <h3>The same fees reward card players</h3>
+            </div>
+            <div className="tk__who">
+              <div className="tk__who-item">
+                <h4>Holders</h4>
+                <p>
+                  Wallets holding between 0.25% and 4% of the supply are entered into a raffle
+                  every 12 hours to receive a free pack.
+                </p>
+              </div>
+              <div className="tk__who-item">
+                <h4>Leaderboard</h4>
+                <p>
+                  The top participants on the Cards leaderboard earn free packs each week for
+                  contributing to the ecosystem.
+                </p>
+              </div>
+            </div>
+            <p className="tk__who-note">Rewards are distributed automatically as free packs.</p>
+          </div>
+        )}
 
       </div>
     </section>

@@ -1685,7 +1685,7 @@ const MACHINE_SET_NAMES: Record<string, string> = {
   basketball: "Basketball",
   baseball: "Baseball",
   football: "Football",
-  water: "Water",
+  water: "Pokémon",
   sports: "Sports",
   anime: "Anime",
   sealed: "Sealed",

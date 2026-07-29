@@ -2,7 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { parseEther } from 'viem'
 import { usePublicClient, useWriteContract } from 'wagmi'
-import { api, formatEth, fromUnix, formatStart, toLocalInput, usdCentsToEth, formatEthAmount } from '../lib/api'
+import {
+  api,
+  fromUnix,
+  formatStart,
+  toLocalInput,
+  usdCentsToEth,
+  formatEthAmount,
+  entryLabel,
+  usdCentsToUsdg,
+  formatUsdg,
+  ethToUsdg,
+} from '../lib/api'
 import { useSession } from '../lib/session'
 import { CURRENCY } from '../config'
 import { describeTxError, isUserRejection } from '../lib/escrow'
@@ -99,13 +110,14 @@ export default function Tournaments() {
                       <strong>{t.players}</strong>/{t.maxPlayers} players
                     </span>
                     <span>
+                      {/* Priced in USDG, with the exact ETH the wallet will ask for. */}
                       {BigInt(t.entryFeeWei) > 0n
-                        ? `${formatEth(t.entryFeeWei)} ${CURRENCY} entry`
+                        ? `${entryLabel(t.entryFeeWei, data?.ethUsd ?? null)} entry`
                         : 'Free entry'}
                     </span>
                     {t.prizeUsdCents ? (
                       <span className="tn__prize-tag">
-                        🏆 ${(t.prizeUsdCents / 100).toLocaleString()} prize
+                        🏆 {usdCentsToUsdg(t.prizeUsdCents)} prize
                       </span>
                     ) : null}
                     <span className="tn__when">
@@ -189,6 +201,9 @@ function CreateForm({
     else prizeUsdCents = Math.round(dollars * 100) || null
   }
   const prizeEth = prizeUsdCents ? usdCentsToEth(prizeUsdCents, ethUsd) : null
+  // What players will see the entry priced at. Null with no rate, in which case the form
+  // simply does not claim one.
+  const entryFeeUsdg = ethToUsdg(Number(feeWei) / 1e18, ethUsd)
 
   const create = async () => {
     setError(null)
@@ -291,6 +306,11 @@ function CreateForm({
           />
           {feeWei > 0n && (
             <p className="tn__note">
+              {/* The field takes ETH because ETH is what the pool charges; the USDG figure is
+                  shown because that is how the entry will be advertised to players. */}
+              {entryFeeUsdg != null && (
+                <>Players see this as <strong>{formatUsdg(entryFeeUsdg)}</strong> at today’s rate. </>
+              )}
               You’ll open the prize pool on chain (one wallet transaction). Winner takes the whole
               pot minus the house fee; if it never runs, entrants reclaim their fee after the
               timeout.
@@ -320,7 +340,7 @@ function CreateForm({
           <strong>
             {prizeEth != null ? `≈ ${formatEthAmount(prizeEth)} ${CURRENCY}` : `${CURRENCY} —`}
           </strong>{' '}
-          (${(prizeUsdCents / 100).toLocaleString()}).{' '}
+          ({usdCentsToUsdg(prizeUsdCents)}).{' '}
           {feeWei > 0n
             ? 'Added on top of the entry pot. Entries still pay out on chain automatically; you pay this prize by hand to the winner.'
             : 'You pay this to the winner by hand — their wallet address is shown on the tournament once it finishes.'}

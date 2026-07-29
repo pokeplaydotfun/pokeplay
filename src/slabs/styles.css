@@ -67,48 +67,43 @@
  */
 
 /*
- * ── Palette: GRAIL dark (restyle-v3) ─────────────────────────────────────
+ * ── Palette: pokeplay cream + red ────────────────────────────────────────
  *
- * The cream editorial theme is inverted back to a near-black base with a single
- * grail-gold accent: near-black page, lighter slate panels, warm off-white text.
+ * The Slabs section wears pokeplay's own palette: a warm cream page (--bg),
+ * white panels, near-black ink, and a single red accent (--brand) that matches
+ * the site's --red. No gold anywhere — the accent is routed through --brand /
+ * --brand-rgb so this stays a one-line swap.
  *
- * Two rules hold the whole thing together, and breaking either is what makes
- * a dark theme look cheap:
+ *   1. Elevation goes UP: panels are white on the cream page, separated by a
+ *      hairline (--line) + soft shadow. Never darken a surface to raise it.
+ *   2. Red is a DARK hue, so a solid red fill carries WHITE ink (--on-brand).
+ *      It also serves as text / border / glow via rgba(var(--brand-rgb), α).
  *
- *   1. Elevation goes UP toward lighter, not down toward black. The page is
- *      already near-black, so a raised surface is a lighter slate (--bg-panel)
- *      leaning on a hairline + shadow to separate. Never darken a panel to raise it.
- *   2. Gold is a LIGHT hue, so it is text / border / glow and a fill under DARK
- *      ink (--on-brand), never a fill under white text. White-on-gold fails
- *      contrast; every solid gold fill carries --on-brand instead of #fff.
- *
- * Tier colours are brightened for the dark base — the cream values were unreadable
- * on near-black. Each clears 4.5:1 on --bg-panel; where a tier is a solid fill it
- * carries dark ink, same as --on-brand.
+ * Tier colours (--common/uncommon/rare/epic) each clear contrast on the white
+ * panel; where a tier is a solid fill it carries white ink, matching --on-brand.
  */
 .slabs-root {
   /*
-   * Grail-gold accent. Gold is a LIGHT hue, so it is a text / border / glow colour
-   * and a FILL that carries dark ink (--on-brand) — never a fill under white text.
+   * pokeplay red accent (matches the site's --red). Red is a DARK hue, so a solid
+   * red fill carries WHITE ink (--on-brand); it also works as text / border / glow.
    * --brand-hot is the brighter top of button gradients and the glow colour.
    */
-  --brand: #b58731;
-  --brand-hot: #d4a03d;
-  --brand-deep: #8a6626;
+  --brand: #d2232a;
+  --brand-hot: #e8433f;
+  --brand-deep: #a81b21;
 
   /*
    * Channels for the brand, so translucent brand washes can be written as
-   * rgba(var(--brand-rgb), α). The stylesheet routes ~50 gold tints through this,
+   * rgba(var(--brand-rgb), α). The stylesheet routes ~50 red tints through this,
    * so the next palette swap stays one line.
    */
-  --brand-rgb: 181, 135, 49;
+  --brand-rgb: 210, 35, 42;
 
   /*
-   * Ink that sits ON a gold fill (primary buttons, grade chips, count badges).
-   * Gold is light, so white-on-gold fails contrast — anything filled with --brand
-   * uses this near-black instead of #fff.
+   * Ink that sits ON a red fill (primary buttons, grade chips, count badges).
+   * Red is dark, so white reads cleanly — anything filled with --brand uses #fff.
    */
-  --on-brand: #111111;
+  --on-brand: #ffffff;
 
   /*
    * Near-black base. Elevation goes UP toward lighter panels, never down toward
@@ -579,48 +574,139 @@
  * Now an auto-fitting grid: every machine visible at once, no scroller, each
  * one large enough to carry its price as content rather than as a footnote.
  */
+/* ---------------------------------------------------------------- gacha headings */
+
+/*
+ * Mastheads, not centred titles.
+ *
+ * The gacha page used .section-head.centered for both of its headings, which floated a
+ * single phrase over the middle of a grid and gave the page the same silhouette as every
+ * other section on the site. A left-set title with a brand tick, a rule running out to a
+ * count on the right, reads as the header of a floor plan — and it lets the eye start at
+ * the left edge, where the tiles below start too.
+ */
+.slabs-root .gc-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 44px 0 18px;
+  /* Clears the sticky nav (~66px) when scrolled to. */
+  scroll-margin-top: 86px;
+}
+
+.slabs-root .gc-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 28px;
+  letter-spacing: -0.01em;
+}
+
+/* The tick. Ties the heading to the brand rail on the selected machine below it. */
+.slabs-root .gc-head h2::before,
+.slabs-root .gc-label::before {
+  content: "";
+  width: 4px;
+  height: 0.8em;
+  border-radius: 1px;
+  background: var(--brand);
+  flex: none;
+}
+
+.slabs-root .gc-rule {
+  flex: 1;
+  height: 1px;
+  min-width: 20px;
+  background: linear-gradient(90deg, var(--line-bright), rgba(0, 0, 0, 0));
+}
+
+.slabs-root .gc-head-meta {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  flex: none;
+}
+
+/* The smaller sibling, over the card grid. */
+.slabs-root .gc-label-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 14px;
+}
+
+.slabs-root .gc-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------- machine bays */
+
+/*
+ * Now a row of squared-off BAYS rather than rounded pills.
+ *
+ * The rounded-card-with-an-icon is the shape every storefront template ships, and it read
+ * as a list of products when what it actually is, is a row of machines you stand at. The
+ * geometry is squared off, and selection is shown by filling the left rail with brand
+ * rather than by ringing the whole tile — so the chosen machine reads as switched ON, not
+ * as merely outlined.
+ */
 .slabs-root .pills {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
   padding: 2px 0 6px;
 }
 
 .slabs-root .pill {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 12px;
   background: var(--bg-panel);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 15px 16px;
+  /* The rail. Grey when idle, brand when chosen — the whole selected state in one edge. */
+  border-left: 3px solid var(--line-bright);
+  border-radius: 4px;
+  padding: 13px 14px;
   cursor: pointer;
   font: inherit;
   color: var(--text-dim);
   text-align: left;
-  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+  transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.12s;
 }
 .slabs-root .pill:hover {
   color: var(--text);
   border-color: var(--line-bright);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 .slabs-root .pill[data-active="true"] {
-  border-color: var(--brand);
   color: var(--text);
-  background: var(--bg-panel);
-  /* Doubling the border rather than tinting the fill: on cream a tinted panel
-     next to white ones reads as "disabled", which is backwards for the one
-     that is selected. */
-  box-shadow: inset 0 0 0 1px var(--brand), var(--shadow-sm);
+  border-color: rgba(var(--brand-rgb), 0.35);
+  border-left-color: var(--brand);
+  /* A wash that fades out across the tile, not a flat tint: on cream a fully tinted panel
+     next to white ones reads as "disabled", which is backwards for the one selected. */
+  background: linear-gradient(90deg, rgba(var(--brand-rgb), 0.07), transparent 55%), var(--bg-panel);
+  box-shadow: var(--shadow-sm);
 }
 
 /* A miniature sealed pack, matching the one in the reveal — our own art, not CC's pack
    design. Previously an empty rectangle, which read as a broken image. */
 .slabs-root .pill-mark {
-  width: 28px;
+  width: 27px;
   height: 36px;
-  border-radius: 5px;
+  border-radius: 3px;
   background: linear-gradient(160deg, #f2ede3, #ffffff);
   border: 1px solid var(--line-bright);
   flex: none;
@@ -634,44 +720,65 @@
   position: absolute;
   inset: 3px;
   border: 1px dashed rgba(var(--brand-rgb), 0.3);
-  border-radius: 3px;
+  border-radius: 2px;
 }
-.slabs-root .pill-mark img { width: 15px; height: 15px; object-fit: contain; position: relative; }
+.slabs-root .pill-mark img,
+.slabs-root .pill-mark svg { width: 15px; height: 15px; object-fit: contain; position: relative; }
 
-/* The active mark was tinted toward the old red brand (#2e1a1e); tinted green now. */
 .slabs-root .pill[data-active="true"] .pill-mark {
   border-color: rgba(var(--brand-rgb), 0.6);
   background: linear-gradient(160deg, #f2ede3, #ffffff);
 }
 .slabs-root .pill[data-active="true"] .pill-mark::after { border-color: rgba(var(--brand-rgb), 0.6); }
 
-.slabs-root .pill-name { font-size: 13.5px; font-weight: 580; }
-.slabs-root .pill-price { font-size: 11.5px; color: var(--text-faint); }
+.slabs-root .pill-text { display: grid; gap: 3px; min-width: 0; }
+
+/* Caps and tracked out, so the name reads as a label on a machine rather than as a
+   product title. */
+.slabs-root .pill-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slabs-root .pill[data-active="true"] .pill-name { color: var(--brand); }
+
+/* The price is the fact you compare machines on, so it takes the display face and the
+   size the name used to have. */
+.slabs-root .pill-price {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------------------------------------------------------------- floor layout */
 
 /*
- * Composition inverted: the buy panel moves from a right-hand sidebar to a
- * sticky LEFT rail, and the card grid takes the main column.
+ * The buy panel sits on the RIGHT, as a sticky rail; the card grid takes the main
+ * column on the left.
  *
- * The old arrangement put the thing you act on last in reading order and let it
- * scroll away, which is why it needed a second CTA further down the page. As a
- * sticky rail the price and the Open button stay put while you browse what is
- * in the machine, which is the actual loop on this page.
+ * It was a left rail. Either side keeps the price and the Open button on screen while
+ * you browse — the point of making it sticky — but on the right the pool leads in
+ * reading order and the action sits where the thumb and the wallet UI already are,
+ * rather than pushing every card one column further from the edge you scan from.
  *
- * Done with `order` rather than by moving the markup: the panel carries refs,
- * the feed and the sell flow, and reordering the DOM would have meant rewriting
- * all of it to move a column.
+ * The panel stays LAST in the markup, so no `order` is needed here; the narrow-screen
+ * rule below still hoists it above the grid, where the action must come first.
  */
 .slabs-root .floor {
   display: grid;
-  grid-template-columns: 336px minmax(0, 1fr);
-  gap: 36px;
+  grid-template-columns: minmax(0, 1fr) 352px;
+  gap: 32px;
   align-items: start;
 }
 
 .slabs-root .floor > .panel {
-  order: -1;
   position: sticky;
   /* Clears the sticky nav (~66px) plus a breath. */
   top: 82px;
@@ -713,21 +820,48 @@
 @media (max-width: 1180px) { .slabs-root .pool { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 720px)  { .slabs-root .pool { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
+/*
+ * Squared off, with the tier stated as a rule across the top of the tile rather than as
+ * a glow behind the slab. Rounded corners plus a soft coloured halo is the house style of
+ * every NFT grid; a hard edge and a colour bar reads like a graded-card listing, which is
+ * what these are.
+ */
 .slabs-root .prize {
+  position: relative;
   background: var(--bg-panel);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   overflow: hidden;
-  transition: transform 0.18s, border-color 0.18s;
+  cursor: pointer;
+  transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
 }
-.slabs-root .prize:hover { transform: translateY(-3px); border-color: var(--tier); }
 
+.slabs-root .prize::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--tier);
+  z-index: 2;
+}
+
+.slabs-root .prize:hover {
+  transform: translateY(-3px);
+  border-color: var(--line-bright);
+  box-shadow: 0 14px 26px -18px rgba(17, 17, 17, 0.75);
+}
+
+/*
+ * A plain well, no tier halo behind the slab. The rule across the top of the tile already
+ * states the tier; tinting the whole art box with it as well made every card sit in a
+ * coloured cloud and turned the grid into a swatch chart.
+ */
 .slabs-root .prize-art {
   position: relative;
   aspect-ratio: 676 / 1136; /* the slab photo's real ratio */
-  background:
-    radial-gradient(110px 90px at 50% 45%, color-mix(in srgb, var(--tier) 20%, transparent), transparent 72%),
-    var(--art-bg);
+  background: var(--art-bg);
   display: grid;
   place-items: center;
   border-bottom: 1px solid var(--line);
@@ -759,56 +893,119 @@
 
 .slabs-root .prize-badge {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
+  top: 11px;
+  right: 0;
+  font-size: 9px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 700;
   padding: 3px 7px;
-  border-radius: 5px;
+  border-radius: 2px 0 0 2px;
   background: var(--tier);
-  color: #07080b;
+  color: #ffffff;
 }
 
-.slabs-root .prize-body { padding: 10px 11px 12px; }
+.slabs-root .prize-body { padding: 9px 10px 10px; }
 
 .slabs-root .prize-name {
-  font-size: 12px;
-  font-weight: 560;
+  font-size: 11.5px;
+  font-weight: 550;
   line-height: 1.35;
   height: 2.7em;
   overflow: hidden;
+  color: var(--text-dim);
   margin-bottom: 8px;
 }
 
-.slabs-root .prize-meta { display: flex; justify-content: space-between; align-items: baseline; }
-.slabs-root .prize-value { font-size: 13.5px; font-weight: 640; font-variant-numeric: tabular-nums; }
-.slabs-root .prize-grade-label { font-size: 11px; color: var(--text-faint); }
+/* Value and grade sit on a hairline, like the summary line of a listing. */
+.slabs-root .prize-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.slabs-root .prize-value {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* A stamped chip rather than loose grey text — the grade is stamped on the real slab. */
+.slabs-root .prize-grade-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 2px 5px;
+  white-space: nowrap;
+}
 
 /* ---------------------------------------------------------------- machine panel */
 
 /*
- * The buy panel.
+ * The buy panel: a stage on top, a padded body under it.
  *
- * Was a card whose children were full-bleed bands separated by hairlines, with a square
- * edge-to-edge button at its centre. That construction — not the contents — is what kept
- * it looking like the project this was forked from.
+ * It has been two things before — a stack of full-bleed bands ruled off from each other,
+ * and then one evenly padded card with the pack, the name and the price stacked and
+ * centred down the middle of it. The second reads as a form: three centred blocks and a
+ * button, the same shape as a checkout page.
  *
- * Now one padded surface with everything inset to a single gutter, spaced rather than
- * ruled, and a rounded button like every other button on this site. It matches the
- * .home-point cards on the landing page, so the two pages read as one product.
+ * Now the pack sits in its own framed stage with the machine's name and price on a plate
+ * along the bottom of it, and only the things you act on live in the padded body below.
+ * The panel reads as a piece of equipment with a price on the front, which is what it is.
  */
 .slabs-root .panel {
   position: sticky;
   top: 78px;
   background: var(--bg-panel);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 18px;
+  border-radius: 6px;
+  /* Zero, because the stage bleeds to the edges. The body blocks carry their own gutter. */
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+/*
+ * The stage. A cream well with a soft brand light from the top and a fine diagonal
+ * hatch — enough texture that the pack sits ON something, without inventing a new colour.
+ */
+.slabs-root .panel-stage {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  /* 30px at the top used to clear a "Machine N" tag pinned to the corner; with that gone
+     the pack was sitting in a pocket of empty space. */
+  padding: 20px 16px 0;
+  background:
+    radial-gradient(320px 190px at 50% -10%, rgba(var(--brand-rgb), 0.11), transparent 72%),
+    repeating-linear-gradient(-45deg, rgba(var(--brand-rgb), 0.035) 0 1px, transparent 1px 8px),
+    var(--bg);
+}
+
+/*
+ * The price plate: name on the left, price on the right, ruled off from the stage and
+ * bled to the panel edges. It replaces a centred name-over-price stack, which put the
+ * most comparable number on the page in the middle of a column of centred text.
+ */
+.slabs-root .panel-plate {
+  /* Bleeds back out through the stage's 16px side padding to meet the panel edges. */
+  width: calc(100% + 32px);
+  margin: 16px -16px 0;
+  padding: 11px 16px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 
@@ -825,9 +1022,9 @@
 .slabs-root .panel-ev b { color: var(--text); font-size: 15px; font-weight: 640; }
 
 /*
- * Rounded and inset, like button.primary everywhere else. It used to be a square
- * full-bleed slab running edge to edge through the card — the one control on the site
- * that did not look like the site.
+ * A key, not a pill: flat brand fill, squared to the panel's geometry, capitalised and
+ * tracked out, sitting on a darker bottom edge so it reads as something with travel in
+ * it. The gradient-filled 12px-radius version was the same button every storefront ships.
  */
 .slabs-root .rip-button {
   width: 100%;
@@ -835,22 +1032,26 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: linear-gradient(160deg, var(--brand-hot), var(--brand));
+  background: var(--brand);
   color: var(--on-brand);
   border: 0;
-  border-radius: 12px;
+  border-bottom: 3px solid var(--brand-deep);
+  border-radius: 5px;
   padding: 15px 18px;
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 13.5px;
   font-weight: 700;
-  letter-spacing: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   cursor: pointer;
   transition: filter 0.15s, transform 0.08s, box-shadow 0.15s;
-  box-shadow: 0 8px 20px -10px rgba(var(--brand-rgb), 0.65);
+  box-shadow: 0 8px 20px -12px rgba(var(--brand-rgb), 0.8);
 }
 .slabs-root .rip-button:hover:not(:disabled) { box-shadow: 0 12px 26px -10px rgba(var(--brand-rgb), 0.75); }
 .slabs-root .rip-button:hover:not(:disabled) { filter: brightness(1.1); }
-.slabs-root .rip-button:active:not(:disabled) { transform: translateY(1px); }
+/* Presses INTO its own bottom edge: the travel comes off the border, so the button does
+   not shift the block below it while it is held. */
+.slabs-root .rip-button:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 1px; margin-bottom: 2px; }
 .slabs-root .rip-button:disabled { opacity: 0.42; cursor: not-allowed; box-shadow: none; filter: grayscale(0.4); }
 
 .slabs-root .rip-price {
@@ -868,29 +1069,32 @@
  * number on the page in the control you press — price is a fact about the machine, the
  * button is an action, and someone comparing machines should not have to read buttons.
  */
-/* Centred over the button it sits above, so the name, the price and the action share
-   one axis instead of the price hanging off the left while the button spans the panel. */
-.slabs-root .panel-head { padding: 0; text-align: center; }
-
+/* Left of the plate, in caps — a label on the machine, matching the tile that selected
+   it. It used to be a centred sentence-case line above a centred price. */
 .slabs-root .panel-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-  letter-spacing: 0.01em;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .slabs-root .panel-price {
   display: flex;
   align-items: baseline;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 6px;
-  margin-top: 3px;
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 25px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.05;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+  flex: none;
 }
 
 /*
@@ -936,22 +1140,24 @@
  * Segments are laid out common-first, largest to smallest, so the bar always fills from
  * the same end and the eye can compare two machines by where the colour changes.
  */
+/* Squared and gapped rather than one rounded capsule, so it reads as a segmented gauge.
+   The segments can shrink to absorb the gaps — the widths are percentages that already
+   total 100. */
 .slabs-root .odds-bar {
   display: flex;
-  height: 10px;
-  border-radius: 999px;
+  gap: 2px;
+  height: 7px;
+  border-radius: 2px;
   overflow: hidden;
   background: var(--bg-hover);
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .slabs-root .odds-seg {
   display: block;
   height: 100%;
-  /* A hairline between segments so adjacent tiers stay distinct even when one is 1%. */
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.55);
+  border-radius: 1px;
 }
-.slabs-root .odds-seg:last-child { box-shadow: none; }
 
 .slabs-root .odds-head {
   display: flex;
@@ -969,120 +1175,54 @@
  * where someone actually comparing them will be.
  */
 /*
- * Two columns, not a wrapping row. Flex-wrap put three chips on one line and dropped the
- * fourth onto its own, which read as a mistake. A grid keeps the four aligned and the
- * percentages in a column you can scan.
+ * Four spec cells across, each capped by its own tier colour, sitting directly under the
+ * gauge so a segment and its number share a column.
+ *
+ * This was a 2x2 grid of dot / percentage / name chips, which is a legend — a thing you
+ * consult — where what is wanted is a row of readings you can compare between machines at
+ * a glance.
  */
 .slabs-root .odds-legend {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 1px;
   margin-top: 12px;
 }
 
 .slabs-root .odds-chip {
   display: grid;
-  grid-template-columns: 8px 34px 1fr;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 650;
+  justify-items: center;
+  gap: 1px;
+  padding: 8px 2px 0;
+  border-top: 2px solid var(--tier);
+  background: transparent;
+}
+
+.slabs-root .odds-chip b {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text);
+  line-height: 1.1;
 }
 
-.slabs-root .odds-chip i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  align-self: center;
-  flex: none;
+.slabs-root .odds-chip em {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
 }
 
-.slabs-root .odds-chip em { font-style: normal; font-weight: 500; color: var(--text-faint); }
-
-
-/* ---------------------------------------------------------------- live feed */
-
-.slabs-root .feed { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
 
 /*
- * Recent pulls.
- *
- * Was a hover-highlighted row with a rounded thumbnail — the generic activity-feed line
- * every marketplace ships. Now each entry carries a tier-coloured rule down its left
- * edge instead, so the list reads as a run of results with their rarity visible in the
- * margin, and the thumbnails sit square against that rule rather than floating in it.
+ * The recent-pulls feed was removed from the buy panel at the operator's request, and
+ * with it every .feed* rule. `getRecentRips` is still exported from client.ts if it is
+ * ever wanted again.
  */
-.slabs-root .feed-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 7px 0 7px 11px;
-  font-size: 12.5px;
-  position: relative;
-  animation: feed-in 0.4s ease;
-}
 
-.slabs-root .feed-row::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  border-radius: 2px;
-  background: var(--tier);
-  opacity: 0.85;
-}
-.slabs-root .feed-row:hover::before { opacity: 1; width: 3px; }
-
-@keyframes feed-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* Square, not a circle: a graded slab is a rectangle and a round crop of one reads as
-   an avatar. */
-.slabs-root .feed-mark {
-  width: 28px;
-  height: 36px;
-  border-radius: 4px;
-  /* Neutral, not tier-coloured. The rule down the left of the row already carries the
-     tier; ringing the thumbnail in it too stated the same thing twice and made every
-     row look outlined. */
-  border: 1px solid var(--line);
-  background: var(--art-bg);
-  flex: none;
-  display: grid;
-  place-items: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--tier);
-  overflow: hidden;
-}
-.slabs-root .feed-mark img { width: 100%; height: 100%; object-fit: cover; }
-
-.slabs-root .feed-body { min-width: 0; flex: 1; }
-/* The name takes what is left and truncates; the value is pushed to its own right-hand
-   column so the numbers line up down the list instead of floating after each name. */
-.slabs-root .feed-name {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--text-dim);
-}
-.slabs-root .feed-who { color: var(--text-faint); font-size: 11px; }
-.slabs-root .feed-value {
-  flex: none;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  font-size: 13px;
-  color: var(--text);
-}
 
 /* ---------------------------------------------------------------- how it works */
 
@@ -1294,7 +1434,8 @@
   align-content: center;
 }
 
-.slabs-root .pack-logo { width: 44px; height: 44px; object-fit: contain; opacity: 0.9; }
+.slabs-root .pack-logo { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; opacity: 0.9; }
+.slabs-root .pack-logo svg { width: 44px; height: 44px; }
 
 .slabs-root .pack-seal span {
   font-size: 9.5px;
@@ -2523,8 +2664,10 @@
  * instead of chaining the momentum on to the document.
  */
 .slabs-root .pool-scroll {
-  /* Set from JS to match the machine panel's height so both columns end on the same line.
-     The literal is only the value used before the first measurement. */
+  /* Set from JS to the greater of this height and the machine panel's, so the columns end
+     on the same line when the panel is the taller one without the grid collapsing to the
+     panel's height when it is not. The literal is the pre-measurement value, and the JS
+     floor is kept identical to it. */
   max-height: var(--match-panel, min(74vh, 820px));
   min-height: 420px;
   overflow-y: auto;
@@ -2593,16 +2736,13 @@
 
 /* ---------------------------------------------------------------- panel CTAs */
 
-.slabs-root .panel-cta { display: flex; flex-direction: column; padding: 0; }
-
 /*
- * The section wrapper lost its padding in a refactor, which pushed the odds header, the
- * bar and the legend flush to the panel edge. Restored here rather than added to each
- * child, so anything added to the panel later inherits the same gutter.
+ * The panel's own padding is 0 so the stage can bleed to its edges, which means the
+ * blocks BELOW the stage carry the gutter themselves. Set here, on the two wrappers,
+ * rather than on each child — anything added to either block inherits it.
  */
-/* Spaced, not ruled. The hairline between every block was doing work that the panel's
-   own gap already does. */
-.slabs-root .panel-section { padding: 4px 0 0; }
+.slabs-root .panel-cta { display: flex; flex-direction: column; padding: 16px 16px 0; }
+.slabs-root .panel-section { padding: 16px; }
 
 .slabs-root .rip-button .usdg-mark { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
 .slabs-root .pill-price .usdg-mark { width: 0.95em; height: 0.95em; }
@@ -3187,7 +3327,8 @@
   gap: 10px;
 }
 
-.slabs-root .footer-logo { width: 20px; height: 20px; object-fit: contain; }
+.slabs-root .footer-logo { display: inline-flex; align-items: center; vertical-align: middle; margin-right: 7px; }
+.slabs-root .footer-logo svg { width: 20px; height: 20px; }
 
 /* One class for every social link, so adding another is markup only. Sized and spaced to sit
    beside the wordmark without competing with it: faint until hovered, since these are exits
@@ -4499,15 +4640,12 @@
  * The panel opened on a text title before, which left the object being bought invisible
  * until the reveal. A gacha page where you cannot see the pack is a form, not a machine.
  */
+/* The brand light and the hatch now belong to .panel-stage, which this sits inside, so
+   the pack wrapper is only a box that centres it and gives it a shadow to stand on. */
 .slabs-root .panel-pack {
   display: grid;
   place-items: center;
-  padding: 14px 0 6px;
-  border-radius: 12px;
-  /* A soft pool of brand light behind the pack, so it sits on the panel rather than
-     floating. Kept very low alpha — on cream anything stronger becomes a green box. */
-  background:
-    radial-gradient(210px 130px at 50% 58%, rgba(var(--brand-rgb), 0.1), transparent 70%);
+  padding: 4px 0 18px;
 }
 
 /*
@@ -4517,16 +4655,19 @@
  * are the point.
  */
 .slabs-root .panel-pack-art {
-  width: 108px;
-  height: 148px;
-  border-radius: 9px;
+  width: 116px;
+  height: 159px;
+  /* Squared to the panel's geometry, and tilted a few degrees so the pack reads as an
+     object resting in the machine rather than as a diagram of one. */
+  border-radius: 4px;
+  transform: rotate(-3deg);
   display: grid;
   place-items: center;
   background:
     linear-gradient(150deg, rgba(255, 255, 255, 0.1) 0%, transparent 34%),
     var(--art-bg-tilt);
   border: 1px solid var(--line-bright);
-  box-shadow: var(--shadow-sm), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 16px 26px -18px rgba(17, 17, 17, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   position: relative;
   overflow: hidden;
 }
@@ -4560,20 +4701,20 @@
     rgba(0, 0, 0, 0.18);
 }
 
-.slabs-root .panel-pack-art img {
+.slabs-root .panel-pack-art img,
+.slabs-root .panel-pack-art svg {
   width: 40px;
   height: 40px;
   margin-top: 16px;
   position: relative;
   z-index: 1;
   object-fit: contain;
-  position: relative;
   opacity: 0.92;
 }
 
 @media (max-width: 940px) {
-  .slabs-root .panel-pack { padding: 20px 0 16px; }
-  .slabs-root .panel-pack-art { width: 92px; height: 126px; }
+  .slabs-root .panel-pack { padding: 2px 0 14px; }
+  .slabs-root .panel-pack-art { width: 96px; height: 132px; }
 }
 
 /* ---------------------------------------------------------------- landing page */
@@ -4789,15 +4930,19 @@
 .slabs-root .demo-link {
   display: block;
   width: 100%;
-  margin-top: 10px;
-  padding: 12px 18px;
-  background: var(--bg-panel);
-  border: 1px solid var(--line-bright);
-  border-radius: 12px;
+  margin-top: 8px;
+  padding: 11px 18px;
+  background: transparent;
+  /* Dashed, and squared to match the buy key above it: clearly the same kind of control,
+     clearly the one that costs nothing. */
+  border: 1px dashed var(--line-bright);
+  border-radius: 5px;
   font-family: var(--font-display);
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
@@ -4903,7 +5048,8 @@
 /* The mark, no wrapper. The logo is already a circular mark with its own edge, so a circle
    around it drew a second, fainter ring. */
 .slabs-root .tok-badge { display: block; margin-bottom: 26px; line-height: 0; }
-.slabs-root .tok-badge img {
+.slabs-root .tok-badge img,
+.slabs-root .tok-badge svg {
   width: 88px;
   height: 88px;
   object-fit: contain;
@@ -5019,7 +5165,8 @@
   .slabs-root .tok { padding: 32px 0 20px; }
   .slabs-root .tok-top { gap: 28px; padding-bottom: 32px; }
   .slabs-root .tok-badge { margin-bottom: 20px; }
-  .slabs-root .tok-badge img { width: 68px; height: 68px; }
+  .slabs-root .tok-badge img,
+  .slabs-root .tok-badge svg { width: 68px; height: 68px; }
   .slabs-root .tok-board { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .slabs-root .tok-who { grid-template-columns: minmax(0, 340px); gap: 26px; }
   .slabs-root .tok-band { margin-top: 36px; }

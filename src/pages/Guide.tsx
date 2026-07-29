@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { titleCase } from '../lib/api'
-import { CHAIN_LABEL, CURRENCY, FAQ } from '../config'
+import { CHAIN_LABEL, CURRENCY, FAQ, SLABS_ENABLED } from '../config'
+import { CONTRACTS } from '../slabs/chain'
+import { Address } from '../components/Address'
 import '../styles/guide.css'
 
 /* ------------------------------------------------------------------ */
@@ -58,10 +60,22 @@ const SECTIONS: Section[] = [
   { id: 'how', label: 'How it works' },
   { id: 'rules', label: 'Battle rules' },
   { id: 'team', label: 'Building a team' },
+  { id: 'spectate', label: 'Spectating' },
   { id: 'natures', label: 'Natures' },
   { id: 'abilities', label: 'Abilities' },
   { id: 'wager', label: 'Staking & escrow' },
   { id: 'faq', label: 'FAQ' },
+  // The Cards (gacha) section is appended only in the merged build.
+  ...(SLABS_ENABLED
+    ? ([
+        { id: 'cards', label: 'Cards' },
+        { id: 'cards-usdg', label: 'USDG' },
+        { id: 'cards-backing', label: 'Backed 1:1' },
+        { id: 'cards-collection', label: 'Robinhood Collection' },
+        { id: 'cards-market', label: 'Marketplace' },
+        { id: 'cards-faq', label: 'Cards FAQ' },
+      ] as Section[])
+    : []),
 ]
 
 /**
@@ -363,6 +377,36 @@ export default function Guide() {
               </div>
             </section>
 
+            {/* Spectating */}
+            <section id="spectate" className="g-sec">
+              <div className="eyebrow">Watching</div>
+              <h2>Spectating</h2>
+              <p className="g-lede">
+                Any match in progress can be watched live, turn by turn, without joining it. A
+                spectator sees the same board both players see but takes no part in the battle.
+              </p>
+              <ul className="g-list">
+                <li>
+                  <b>Find a match</b> — the <b>Watch live</b> panel on the Play page lists every
+                  battle currently underway, with the two trainers, the stake and how many people
+                  are already watching.
+                </li>
+                <li>
+                  <b>Open it</b> — press <b>Watch</b> on any row to follow that battle. Tournament
+                  matches also carry a <b>Watch live</b> link straight from the bracket.
+                </li>
+                <li>
+                  <b>Follow along</b> — moves, damage, switches and status all play out in real time,
+                  alongside the running battle log and a live count of everyone watching.
+                </li>
+              </ul>
+              <div className="g-tip">
+                <span className="g-tip__k">Note</span>
+                Spectating is read only. You never see hidden information, and nothing you do can
+                change the outcome of a match you are watching.
+              </div>
+            </section>
+
             {/* Natures */}
             <section id="natures" className="g-sec">
               <div className="eyebrow">Reference</div>
@@ -414,7 +458,7 @@ export default function Guide() {
 
             {/* Wagering & escrow */}
             <section id="wager" className="g-sec">
-              <div className="eyebrow">Money</div>
+              <div className="eyebrow">Staking</div>
               <h2>Staking &amp; escrow</h2>
               <p className="g-lede">
                 Staking {CURRENCY} is optional. When both players stake, the {CURRENCY} is held by
@@ -457,6 +501,172 @@ export default function Guide() {
                 ))}
               </div>
             </section>
+
+            {/* -------- Cards (the gacha), merged build only -------- */}
+            {SLABS_ENABLED && (
+              <>
+                <section id="cards" className="g-sec">
+                  <div className="eyebrow">Cards</div>
+                  <h2>Opening packs</h2>
+                  <p className="g-lede">
+                    PokePlay also opens real Collector Crypt packs and mints you a card backed
+                    one-to-one by the graded card inside. You pay in USDG on {CHAIN_LABEL}; the
+                    card stays graded, insured and vaulted until you decide what to do with it.
+                  </p>
+                  <ul className="g-list">
+                    <li>
+                      <b>Pay in USDG</b> — pick a machine and pay in USDG. Your payment is held
+                      in escrow by the contract until a pack has actually been opened for you.
+                    </li>
+                    <li>
+                      <b>We open a real pack</b> — your USDG buys a genuine Collector Crypt pack,
+                      verifiable on-chain.
+                    </li>
+                    <li>
+                      <b>You receive the card</b> — an NFT is minted to you on {CHAIN_LABEL},
+                      backed one-to-one by the graded card held in the Collector Crypt vault.
+                    </li>
+                    <li>
+                      <b>Keep it, sell it, or take it</b> — hold it as long as you like, sell it
+                      back to the vault, list it on the marketplace, or withdraw and claim the
+                      physical card.
+                    </li>
+                  </ul>
+                  <div className="g-tip">
+                    <span className="g-tip__k">Odds</span>
+                    Each machine has its own odds, value bands and price, set by Collector Crypt.
+                    They're shown live on every machine over in the{' '}
+                    <Link to="/cards/gacha">Gacha</Link>.
+                  </div>
+                </section>
+
+                <section id="cards-usdg" className="g-sec">
+                  <div className="eyebrow">Cards</div>
+                  <h2>USDG &amp; your wallet</h2>
+                  <p className="g-lede">
+                    USDG is {CHAIN_LABEL}'s stablecoin, issued by Paxos. One USDG is one dollar,
+                    and it's what packs are priced in.
+                  </p>
+                  <p className="g-lede">
+                    Some wallets don't recognise USDG by default, so a funded balance can show as
+                    nothing until you import the token. You also need a small amount of ETH for
+                    gas.
+                  </p>
+                  <ul className="g-list">
+                    <li>
+                      <b>USDG contract</b> — <Address value={CONTRACTS.usdg} />
+                    </li>
+                  </ul>
+                </section>
+
+                <section id="cards-backing" className="g-sec">
+                  <div className="eyebrow">Cards</div>
+                  <h2>What backs your card</h2>
+                  <p className="g-lede">
+                    In the vault sits a professionally graded card, insured at a stated value and
+                    held in custody. It does not move while your token exists.
+                  </p>
+                  <p className="g-lede">
+                    In your wallet sits an ERC-721 on {CHAIN_LABEL} carrying the grade, certificate
+                    number and insured value of that exact card. There is never more than one token
+                    per card. The Collector Crypt NFT backing it stays in Solana custody for exactly
+                    as long as your {CHAIN_LABEL} token exists.
+                  </p>
+                </section>
+
+                <section id="cards-collection" className="g-sec">
+                  <div className="eyebrow">Cards</div>
+                  <h2>The card collection</h2>
+                  <p className="g-lede">
+                    Every card opened here is minted into one collection: one token per card,
+                    minted only once the physical card is already in custody, and burned when it
+                    leaves.
+                  </p>
+                  <ul className="g-list">
+                    <li><b>Name</b> — POKEPLAY</li>
+                    <li><b>Symbol</b> — PLAY</li>
+                    <li><b>Standard</b> — ERC-721</li>
+                    <li><b>Network</b> — {CHAIN_LABEL}</li>
+                    {CONTRACTS.mirror && (
+                      <li><b>Contract</b> — <Address value={CONTRACTS.mirror} /></li>
+                    )}
+                  </ul>
+                  <div className="g-tip">
+                    <span className="g-tip__k">Tip</span>
+                    Most wallets don't show a card automatically. On {CHAIN_LABEL}, open your
+                    wallet's NFT section, choose Import NFT, and paste the contract address above
+                    with the token ID shown on your card.
+                  </div>
+                </section>
+
+                <section id="cards-market" className="g-sec">
+                  <div className="eyebrow">Cards</div>
+                  <h2>Marketplace &amp; deposit</h2>
+                  <p className="g-lede">
+                    Cards can be traded between users, and selling to another user often beats
+                    selling back to the vault.
+                  </p>
+                  <ul className="g-list">
+                    <li>
+                      <b>List</b> — set your price; the card stays in your wallet and moves only
+                      when someone buys it. Change the price or delist at any time.
+                    </li>
+                    <li>
+                      <b>Offer</b> — bid on any listed card, and withdraw the offer whenever you
+                      like.
+                    </li>
+                    <li>
+                      <b>Buy</b> — pay the asking price and the card is yours in the same
+                      transaction.
+                    </li>
+                    <li>
+                      <b>Deposit</b> — cards you already own on Collector Crypt can be brought
+                      across; once the card reaches the vault, the NFT is minted to your wallet.
+                    </li>
+                  </ul>
+                  <p className="g-muted">
+                    Neither your card nor your USDG is ever held by the marketplace — listing only
+                    grants permission to move a card, an offer only grants permission to spend, so
+                    both sides keep what's theirs until a trade happens. A 2.5% fee applies to a
+                    completed sale.
+                  </p>
+                </section>
+
+                <section id="cards-faq" className="g-sec">
+                  <div className="eyebrow">Cards</div>
+                  <h2>Cards FAQ</h2>
+                  <div className="g-faq">
+                    {[
+                      {
+                        q: 'What is USDG and where do I get it?',
+                        a: 'USDG is a dollar-backed stablecoin issued by Paxos, and it is the currency of Robinhood Chain. One USDG is one dollar. You will need a small amount of ETH for gas as well.',
+                      },
+                      {
+                        q: 'Do I need a Solana wallet?',
+                        a: 'Not to open packs, sell cards back or trade them here. You only need one if you want to withdraw the underlying Solana asset out of custody.',
+                      },
+                      {
+                        q: 'What exactly is insured value?',
+                        a: "It is the vault's own reference valuation for a graded card, and it is what every sell-back quote is calculated from. It is not a market price, and a card may be worth more or less in a live auction.",
+                      },
+                      {
+                        q: 'What if something goes wrong while my pack is opening?',
+                        a: 'A pack that never opens is refunded in full. Your payment sits in escrow until the moment we buy your pack, and if anything fails before that the contract refunds you automatically.',
+                      },
+                      {
+                        q: 'Can I get the physical card shipped?',
+                        a: 'Yes. Withdraw the Solana asset, then redeem it with Collector Crypt directly. Redemption is theirs, so it needs your own verified account with them and is subject to their fees and shipping.',
+                      },
+                    ].map((item) => (
+                      <details className="g-faq__item" key={item.q}>
+                        <summary>{item.q}</summary>
+                        <p>{item.a}</p>
+                      </details>
+                    ))}
+                  </div>
+                </section>
+              </>
+            )}
 
             <div className="guide__foot">
               <h2>Ready to battle?</h2>

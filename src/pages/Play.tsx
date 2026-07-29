@@ -337,8 +337,8 @@ export default function Play() {
           <div>
             <h2>Build a team and play a match</h2>
             <p className="lede">
-              Build six from the original 151, then post a match or accept one from the board.
-              The battle starts the moment someone accepts it.
+              Build a team of six from the original 151, post a match or accept one from the board.
+              The battle starts the moment a game is accepted.
             </p>
           </div>
         </div>

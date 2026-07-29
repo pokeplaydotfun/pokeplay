@@ -51,6 +51,8 @@ export function Footer() {
           </a>
         </div>
       </div>
+
+      <div className="wrap footer__legal">© 2026 {BRAND.name}. All rights reserved.</div>
     </footer>
   )
 }

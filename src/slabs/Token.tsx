@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { TOKEN, collectionUrl } from "./chain.ts";
 import { Address } from "./Address.tsx";
-import logo from "/slabs/logo.png";
 import { BRAND_NAME, BRAND_FULL } from "./brand.ts";
+import { Mark } from "../components/ui";
 
 /**
  * The $PWA page.
@@ -90,7 +90,7 @@ export function TokenPage() {
           {/* The mark alone. A pill sized for a word looks like a broken label with the
               word removed, so this is a plain circular mark instead. */}
           <span className="tok-badge" aria-hidden="true">
-            <img src={logo} alt="" />
+            <Mark size={40} />
           </span>
           <h1>{BRAND_FULL}</h1>
           <p className="tok-lead">
