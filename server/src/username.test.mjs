@@ -189,5 +189,58 @@ await check('two wallets racing for one name: exactly one wins', async () => {
   )
 })
 
+/* ---- /api/names: address -> username, for the cards leaderboard ---- */
+
+await check('a claimed name resolves for a visible wallet', async () => {
+  const u = await nextUser()
+  await claim(u, 'resolvable')
+  const { body } = await api(`/api/names?addresses=${u.address}`)
+  assert.deepStrictEqual(body.names, [{ address: u.address, name: 'resolvable' }])
+})
+
+await check('a HIDDEN wallet resolves to nothing', async () => {
+  /*
+   * The safety property of this endpoint, and the reason it cannot simply mirror
+   * publicIdentity. That function withholds the ADDRESS and keeps the name, so a name is
+   * never tied back to a wallet. This one runs the other way round - address in, name out -
+   * so returning a name here for a hidden wallet would hand out exactly the association
+   * "Hide my wallet" exists to prevent.
+   */
+  const u = await nextUser()
+  await claim(u, 'ghost')
+  await api('/api/me/privacy', {
+    method: 'POST', headers: auth(u.token), body: JSON.stringify({ hideWallet: true }),
+  })
+
+  const { body } = await api(`/api/names?addresses=${u.address}`)
+  assert.deepStrictEqual(body.names, [], `a hidden wallet leaked: ${JSON.stringify(body.names)}`)
+
+  const raw = JSON.stringify(body)
+  assert.ok(!raw.includes('ghost'), `the hidden name appeared anyway: ${raw}`)
+})
+
+await check('unknown and malformed addresses are simply absent', async () => {
+  const u = await nextUser()
+  await claim(u, 'present')
+  const unknown = '0x' + 'a'.repeat(40)
+  const { body } = await api(`/api/names?addresses=${u.address},${unknown},notanaddress,0x123`)
+  assert.deepStrictEqual(body.names, [{ address: u.address, name: 'present' }])
+})
+
+await check('a wallet with no name claimed is absent, not a null entry', async () => {
+  const u = await nextUser()
+  const { body } = await api(`/api/names?addresses=${u.address}`)
+  assert.deepStrictEqual(body.names, [])
+})
+
+await check('the batch is capped so it cannot walk the user table', async () => {
+  const many = Array.from({ length: 150 }, (_, i) =>
+    '0x' + (i + 1).toString(16).padStart(40, '0'),
+  ).join(',')
+  const { status, body } = await api(`/api/names?addresses=${many}`)
+  assert.strictEqual(status, 200)
+  assert.ok(Array.isArray(body.names), 'must still answer with a list')
+})
+
 console.log(`\n${passed} username checks passed${process.exitCode ? ' (with failures)' : ''}`)
 process.exit(process.exitCode ?? 0)

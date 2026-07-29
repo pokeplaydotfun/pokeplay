@@ -633,6 +633,45 @@ function publicIdentity(addr: string): { address: string | null; name: string | 
 }
 
 /**
+ * Batch address -> username, so surfaces outside the wager app can show a player by name.
+ *
+ * The cards leaderboard is served by a SEPARATE backend that has no concept of a username —
+ * names and the privacy flag live only here. Without this it can only ever print wallets,
+ * which is why the two leaderboards looked like different products.
+ *
+ * ⚠⚠ A HIDDEN WALLET RESOLVES TO NOTHING, and that is the whole safety property of this
+ * endpoint. `publicIdentity` above withholds the ADDRESS and keeps the name, so a name can
+ * never be tied back to a wallet. This runs the other way round — address in, name out — so
+ * returning a name for a hidden wallet would hand out precisely the association that
+ * "Hide my wallet" exists to prevent. Absent from the response means "no name to show".
+ *
+ * Public and unauthenticated because it reveals strictly less than the leaderboard already
+ * does: every pair it returns is a name and wallet this server publishes side by side anyway.
+ */
+app.get('/api/names', rateLimit(60, 60), (req, res) => {
+  const raw = typeof req.query.addresses === 'string' ? req.query.addresses : ''
+  const wanted = [
+    ...new Set(
+      raw
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter((a) => /^0x[0-9a-f]{40}$/.test(a)),
+    ),
+    // Capped so one request cannot walk the whole user table.
+  ].slice(0, 100)
+
+  const names: { address: string; name: string }[] = []
+  for (const address of wanted) {
+    const u = db.prepare('SELECT name, hide_wallet FROM users WHERE address = ?').get(address) as
+      | { name: string | null; hide_wallet: number }
+      | undefined
+    if (!u || u.hide_wallet || !u.name) continue
+    names.push({ address, name: u.name })
+  }
+  res.json({ names })
+})
+
+/**
  * How an address should appear inside a tournament view. Same rule as
  * publicIdentity — a wallet the owner chose to hide is withheld — with one
  * exception: a viewer always sees their OWN address, so a hidden champion still

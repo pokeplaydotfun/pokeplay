@@ -24,17 +24,52 @@ const usd = (base: string) =>
 /** Gold, silver, bronze, then nothing. A rank badge past third is just noise. */
 const medal = (i: number) => (i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "");
 
+/**
+ * Address -> username, resolved against the wager app's `/api/names`.
+ *
+ * Names live in pokeplay's own database; the cards backend has no concept of one. Without
+ * this the two leaderboards read as different products — battles showing "pika", cards
+ * showing 0xfdeb…3057 for the same person.
+ *
+ * ⚠ A wallet with "Hide my wallet" set is deliberately absent from the response, so it keeps
+ * showing as an address here. Returning its name would tie that name to a wallet, which is
+ * the exact association the setting prevents. Failing soft is the point: on any error every
+ * row simply falls back to the address, which is what it displayed before.
+ */
+async function resolveNames(addresses: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(addresses.map((a) => a.toLowerCase()))].slice(0, 100);
+  if (unique.length === 0) return {};
+  try {
+    const res = await fetch(`/api/names?addresses=${unique.join(",")}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return {};
+    const body = (await res.json()) as { names?: { address: string; name: string }[] };
+    return Object.fromEntries((body.names ?? []).map((n) => [n.address.toLowerCase(), n.name]));
+  } catch {
+    return {};
+  }
+}
+
 export function Leaderboard() {
   const { address } = useAccount();
   const [sort, setSort] = useState<LeaderSort>("value");
   const [rows, setRows] = useState<LeaderRow[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     getLeaderboard(sort)
-      .then((r) => !cancelled && setRows(r.rows))
+      .then(async (r) => {
+        if (cancelled) return;
+        setRows(r.rows);
+        // Resolved after the rows are shown, not before: a slow or failing name lookup must
+        // never hold up the ranking itself, which is the thing people came for.
+        const resolved = await resolveNames(r.rows.map((row) => row.address));
+        if (!cancelled) setNames(resolved);
+      })
       .catch(() => !cancelled && setRows([]))
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -80,7 +115,9 @@ export function Leaderboard() {
         <ol className="lb-board">
           <li className="lb-board-head" aria-hidden="true">
             <span>#</span>
-            <span>Wallet</span>
+            {/* "Player", not "Wallet": the column shows a username wherever one exists,
+                matching the battles leaderboard's heading for the same information. */}
+            <span>Player</span>
             <span className="lb-col-num" data-primary={sort === "packs" || undefined}>Packs</span>
             <span className="lb-col-num" data-primary={sort === "value" || undefined}>Value</span>
           </li>
@@ -90,7 +127,17 @@ export function Leaderboard() {
               <li className="lb-entry" key={r.address} data-medal={medal(i)} data-you={you || undefined}>
                 <span className="lb-entry-rank">{i + 1}</span>
                 <span className="lb-entry-who">
-                  <Address value={r.address} short />
+                  {/* Same shape as the battles leaderboard: the username leads and the
+                      wallet sits under it, quieter. A wallet with no username claimed still
+                      shows as the address alone, exactly as that board does. */}
+                  {names[r.address.toLowerCase()] ? (
+                    <span className="lb-entry-id">
+                      <span className="lb-entry-name">{names[r.address.toLowerCase()]}</span>
+                      <Address value={r.address} short className="lb-entry-addr" />
+                    </span>
+                  ) : (
+                    <Address value={r.address} short />
+                  )}
                   {you && <span className="lb-you">You</span>}
                 </span>
                 <span className="lb-col-num lb-entry-packs" data-primary={sort === "packs" || undefined}>

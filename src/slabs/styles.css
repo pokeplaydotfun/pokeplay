@@ -6262,6 +6262,28 @@
   text-align: center;
 }
 .slabs-root .lb-entry-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* Username over wallet, the same stack the battles leaderboard uses. The address is
+   deliberately quieter and smaller: once a name is known it is the identity, and the wallet
+   is corroboration. `min-width: 0` so a long name truncates instead of shoving the number
+   columns out of the row. */
+.slabs-root .lb-entry-id { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.slabs-root .lb-entry-name {
+  font-weight: 650;
+  color: var(--text);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* nowrap matters as much here as on the name: the truncated form is already only 11
+   characters, so letting it break puts "57" alone on a second line and the row reads as
+   broken rather than compact. */
+.slabs-root .lb-entry-id .lb-entry-addr {
+  font-size: 12px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
 .slabs-root .lb-entry-packs,
 .slabs-root .lb-entry-value { color: var(--text-dim); font-size: 14px; }
 /* the column the board is sorted by is the actual ranking — make it the bold, full-ink one */
