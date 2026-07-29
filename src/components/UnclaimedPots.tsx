@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from 'wagmi'
 import { api, formatEth } from '../lib/api'
 import { CHAIN_ID, CHAIN_LABEL, CURRENCY, EXPLORER } from '../config'
@@ -174,7 +174,20 @@ function Countdown({ at }: { at: number | undefined }) {
 }
 
 export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
-  const [pots, setPots] = useState<Unclaimed[]>([])
+  const [rawPots, setPots] = useState<Unclaimed[]>([])
+  /**
+   * Wagers claimed in this session, hidden immediately.
+   *
+   * `/api/me/unclaimed` is driven by the wager's DATABASE status, which only flips when the
+   * reconciler next runs. Until then a settled, withdrawn pot keeps coming back from the
+   * server, so the row sat there offering to claim money already in the wallet. The chain is
+   * the truth and it has been acted on, so hide it locally rather than wait for the server.
+   */
+  const [done, setDone] = useState<Set<string>>(new Set())
+  const pots = useMemo(
+    () => rawPots.filter((p) => !done.has(String(p.wagerId))),
+    [rawPots, done],
+  )
   const [busy, setBusy] = useState<number | 'credit' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'idle' | 'signing' | 'wallet' | 'confirming'>('idle')
@@ -290,6 +303,7 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
         kind: pot.kind,
         hash: wHash,
       })
+      setDone((d) => new Set(d).add(String(pot.wagerId)))
       setCreditKey((k) => k + 1)
       await refresh()
     } catch (e) {
