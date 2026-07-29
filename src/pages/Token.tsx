@@ -94,7 +94,7 @@ export default function Token() {
           <div className="tk__block">
             <div className="tk__block-head">
               <div className="eyebrow">Cards</div>
-              <h3>The same fees reward card players</h3>
+              <h3>The same fees fund tournaments and reward card players</h3>
             </div>
             <div className="tk__who">
               <div className="tk__who-item">

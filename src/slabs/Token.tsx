@@ -125,17 +125,17 @@ export function TokenPage() {
         Two reward categories, not a numbered sequence.
 
         These were steps 1-3 of a process, so they carried numbers. They are now two
-        answers to "who", which have no order — numbering them would imply Holders comes
-        before Leaderboards, which means nothing.
+        answers to "who", which have no order — numbering them would imply Tournaments
+        comes before Leaderboards, which means nothing.
       */}
       <section className="tok-band tok-band-centered">
         <h2 className="tok-h2">Who gets rewarded</h2>
         <div className="tok-who">
           <div className="tok-who-item">
-            <h3>Holders</h3>
+            <h3>Tournaments</h3>
             <p>
-              Wallets holding between 0.25% and 4% of the token supply are eligible to
-              receive free packs as rewards over time.
+              Daily tournaments are funded by the fees creating ongoing competitions with
+              rewards for players.
             </p>
           </div>
           <div className="tok-who-item">
@@ -146,7 +146,6 @@ export function TokenPage() {
             </p>
           </div>
         </div>
-        <p className="tok-note">Rewards are distributed as free packs</p>
       </section>
 
       {/*
@@ -166,7 +165,7 @@ export function TokenPage() {
               },
               {
                 q: "How do users get rewarded?",
-                a: `Every 12 hours the eligible holders are entered into a raffle, and one of them receives a free pack. Separately, the top spots on the leaderboard earn exclusive rewards each week for contributing to the ${BRAND_NAME} ecosystem, and the leaderboard resets once the week is over.`,
+                a: `The fees fund daily tournaments, which run as ongoing competitions with rewards for the players who take part. Separately, the top spots on the leaderboard earn exclusive rewards each week for contributing to the ${BRAND_NAME} ecosystem, and the leaderboard resets once the week is over.`,
               },
               {
                 q: "How do I claim a reward pack?",
