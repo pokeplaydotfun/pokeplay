@@ -350,7 +350,7 @@ export function WagerBoard({
               args: [onchainId],
             }),
           )
-          setNotice('Wager cancelled. Your stake is now withdrawable below.')
+          setNotice('Match cancelled. Your stake is now withdrawable below.')
           void refetchBalance()
         } catch (e) {
           // The board entry is gone but the stake is not back yet — surface a
@@ -359,7 +359,7 @@ export function WagerBoard({
           throw e
         }
       } else {
-        setNotice('Wager cancelled.')
+        setNotice('Match cancelled.')
       }
     } catch (e) {
       setError(isUserRejection(e) ? 'You rejected the transaction in your wallet.' : describeTxError(e))
@@ -599,7 +599,7 @@ export function WagerBoard({
         ) : wagers.length === 0 ? (
           <Empty
             title="Matches"
-            body="No open wagers right now. Post one above and it will appear here for other trainers to accept."
+            body="No open matches right now."
           />
         ) : (
           <ul className="wagers__list">
