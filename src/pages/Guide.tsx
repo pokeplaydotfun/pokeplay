@@ -542,7 +542,7 @@ export default function Guide() {
 
                 <section id="cards-usdg" className="g-sec">
                   <div className="eyebrow">Cards</div>
-                  <h2>USDG &amp; your wallet</h2>
+                  <h2>USDG</h2>
                   <p className="g-lede">
                     USDG is {CHAIN_LABEL}'s stablecoin, issued by Paxos. One USDG is one dollar,
                     and it's what packs are priced in.
@@ -561,7 +561,7 @@ export default function Guide() {
 
                 <section id="cards-backing" className="g-sec">
                   <div className="eyebrow">Cards</div>
-                  <h2>What backs your card</h2>
+                  <h2>Backed 1:1</h2>
                   <p className="g-lede">
                     In the vault sits a professionally graded card, insured at a stated value and
                     held in custody. It does not move while your token exists.
@@ -576,7 +576,7 @@ export default function Guide() {
 
                 <section id="cards-collection" className="g-sec">
                   <div className="eyebrow">Cards</div>
-                  <h2>The card collection</h2>
+                  <h2>Robinhood Collection</h2>
                   <p className="g-lede">
                     Every card opened here is minted into one collection: one token per card,
                     minted only once the physical card is already in custody, and burned when it
@@ -601,7 +601,7 @@ export default function Guide() {
 
                 <section id="cards-market" className="g-sec">
                   <div className="eyebrow">Cards</div>
-                  <h2>Marketplace &amp; deposit</h2>
+                  <h2>Marketplace</h2>
                   <p className="g-lede">
                     Cards can be traded between users, and selling to another user often beats
                     selling back to the vault.
