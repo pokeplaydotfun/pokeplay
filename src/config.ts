@@ -110,7 +110,7 @@ export const NAV: NavItem[] = [
           items: [
             { label: 'Collection', to: '/cards/collection' },
             { label: 'Marketplace', to: '/cards/marketplace' },
-            { label: 'How it works', to: '/guide#cards' },
+            { label: 'Guide', to: '/guide#cards' },
           ],
         },
         { label: 'Gacha', to: '/cards/gacha' },

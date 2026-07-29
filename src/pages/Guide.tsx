@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { titleCase } from '../lib/api'
 import { CHAIN_LABEL, CURRENCY, FAQ, SLABS_ENABLED } from '../config'
 import { CONTRACTS } from '../slabs/chain'
@@ -159,21 +159,60 @@ function scrollToId(id: string) {
 export default function Guide() {
   const active = useScrollSpy(useMemo(() => SECTIONS.map((s) => s.id), []))
 
-  // Honour a deep link (/guide#natures). The page is code-split, so the target
-  // section doesn't exist when the browser first tries to jump to the fragment;
-  // do it ourselves once the sections have rendered.
+  /**
+   * Honour a deep link such as /guide#cards.
+   *
+   * This used to do ONE requestAnimationFrame and give up if the element was not there yet,
+   * which meant it usually did nothing: the page is code split, so on a cold load the sections
+   * frequently have not rendered by that first frame. /guide#cards silently landed at the top
+   * of the page, and the nav item pointing at it looked broken. It now retries until the
+   * target exists.
+   *
+   * It also re-asserts once after the async content settles. The Abilities section fills from
+   * /api/pokedex and sits ABOVE the cards sections, so when it arrives everything below it
+   * moves and a correct jump becomes a wrong one. The re-assert is skipped if the reader has
+   * scrolled in the meantime, so it can never yank the page out from under them.
+   *
+   * Keyed on the hash rather than mount, so choosing Cards from the header while already on
+   * the guide jumps too, instead of changing the address bar and nothing else.
+   */
+  const location = useLocation()
   useEffect(() => {
-    const id = window.location.hash.slice(1)
+    const id = location.hash.slice(1)
     if (!id || !SECTIONS.some((s) => s.id === id)) return
-    requestAnimationFrame(() => {
+
+    let cancelled = false
+    let frames = 0
+    let landedAt: number | null = null
+
+    const jump = () => {
+      if (cancelled) return
       const el = document.getElementById(id)
-      if (el)
-        window.scrollTo({
-          top: window.scrollY + el.getBoundingClientRect().top - HEADER_OFFSET,
-          behavior: 'instant' as ScrollBehavior,
-        })
-    })
-  }, [])
+      if (!el) {
+        // ~1s of frames. Longer than any render, short enough to give up quietly.
+        if (frames++ < 60) requestAnimationFrame(jump)
+        return
+      }
+      const top = window.scrollY + el.getBoundingClientRect().top - HEADER_OFFSET
+      window.scrollTo({ top, behavior: 'instant' as ScrollBehavior })
+      landedAt = Math.round(window.scrollY)
+    }
+
+    jump()
+    const correct = setTimeout(() => {
+      if (landedAt !== null && Math.abs(window.scrollY - landedAt) < 4) jump()
+    }, 500)
+
+    return () => {
+      cancelled = true
+      clearTimeout(correct)
+    }
+    /*
+     * `key` as well as `hash`, because the hash alone does not change when you are already on
+     * /guide#cards and choose Cards > Guide again. React Router mints a fresh key for every
+     * navigation, so this re-jumps instead of updating the address bar and sitting still.
+     */
+  }, [location.hash, location.key])
 
   const neutralNatures = NATURES.filter((n) => !n.up).map((n) => titleCase(n.name))
   const activeNatures = NATURES.filter((n) => n.up)
