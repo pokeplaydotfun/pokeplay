@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAccount, usePublicClient, useSwitchChain, useWriteContract } from 'wagmi'
 import { api, formatEth } from '../lib/api'
-import { CHAIN_ID, CHAIN_LABEL, CURRENCY } from '../config'
+import { CHAIN_ID, CHAIN_LABEL, CURRENCY, EXPLORER } from '../config'
 import {
   describeTxError, escrowAbi, escrowReady, isUserRejection, requireEscrow,
 } from '../lib/escrow'
@@ -28,6 +28,52 @@ type Unclaimed = {
 type Settlement =
   | { kind: 'win'; wagerId: string; winner: `0x${string}`; signature: `0x${string}` }
   | { kind: 'draw'; wagerId: string; signature: `0x${string}` }
+
+/**
+ * The contract's fee, read from the chain rather than assumed.
+ *
+ * Needed because a winner does NOT receive the pot: they receive the pot minus this fee. The
+ * panel used to print the raw pot for every row, which overstated a win and was simply wrong
+ * for a draw. Falls back to null, and the row then shows the pot with no fee applied only when
+ * the read fails, which is the honest degradation.
+ */
+function useFeeBps() {
+  const publicClient = usePublicClient()
+  const [bps, setBps] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!publicClient || !escrowReady) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const v = await publicClient.readContract({
+          address: requireEscrow(),
+          abi: escrowAbi,
+          functionName: 'feeBps',
+        })
+        if (!cancelled) setBps(Number(v))
+      } catch {
+        /* leave null */
+      }
+    })()
+    return () => { cancelled = true }
+  }, [publicClient])
+
+  return bps
+}
+
+/**
+ * What this row actually pays the person looking at it.
+ *
+ * A DRAW returns each player their OWN stake, with no fee. A WIN pays the pot less the fee.
+ * Showing the pot for a draw told both players they were owed 0.002 when each was owed 0.001.
+ */
+function payoutWei(kind: 'win' | 'draw', stakeWei: string, feeBps: number | null): bigint {
+  const stake = BigInt(stakeWei)
+  if (kind === 'draw') return stake
+  const pot = stake * 2n
+  return feeBps === null ? pot : pot - (pot * BigInt(feeBps)) / 10000n
+}
 
 /** Remaining time before `claimTimeout` becomes available to either player. */
 function useDeadlines(pots: Unclaimed[]) {
@@ -101,6 +147,15 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
   const publicClient = usePublicClient()
   const { writeContractAsync } = useWriteContract()
   const deadlines = useDeadlines(pots)
+  const feeBps = useFeeBps()
+  /**
+   * What was just claimed, kept AFTER the pot leaves the list.
+   *
+   * Without this a successful claim was indistinguishable from nothing happening: `refresh()`
+   * empties `pots`, the guard below returns null, and the whole panel silently vanishes. The
+   * money had moved, but the only way to find out was to reload and go looking.
+   */
+  const [claimed, setClaimed] = useState<{ amountWei: string; kind: 'win' | 'draw'; hash: string } | null>(null)
 
   const refresh = useCallback(async () => {
     if (!signedIn) return setPots([])
@@ -120,7 +175,7 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
     return () => clearInterval(t)
   }, [refresh])
 
-  if (!signedIn || pots.length === 0) return null
+  if (!signedIn || (pots.length === 0 && !claimed)) return null
 
   async function claim(pot: Unclaimed) {
     setError(null)
@@ -163,6 +218,12 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
       setStep('confirming')
       await publicClient.waitForTransactionReceipt({ hash: wHash })
 
+      // Captured BEFORE refresh(), which is what removes the row we are describing.
+      setClaimed({
+        amountWei: payoutWei(pot.kind, pot.stakeWei, feeBps).toString(),
+        kind: pot.kind,
+        hash: wHash,
+      })
       await refresh()
     } catch (e) {
       if (!isUserRejection(e)) setError(describeTxError(e))
@@ -179,14 +240,57 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
 
   return (
     <section className="uc">
+      {claimed && (
+        <div className="uc__done">
+          <strong>
+            {claimed.kind === 'draw' ? 'Refund received.' : 'Winnings received.'}{' '}
+            {formatEth(claimed.amountWei)} {CURRENCY} is in your wallet.
+          </strong>
+          <a
+            className="uc__done-link"
+            href={`${EXPLORER}/tx/${claimed.hash}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View the transaction
+          </a>
+          <button className="uc__done-x" onClick={() => setClaimed(null)} aria-label="Dismiss">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {pots.length > 0 && (
       <div className="uc__head">
-        <h2>You have {pots.length === 1 ? 'a pot' : 'pots'} to collect</h2>
+        {/* The copy was written for a win and then shown on every row, so a draw read as
+            "claim your winnings before you lose them" when a draw cannot be lost and pays
+            back the player's own stake. Each case now says what is actually true of it. */}
+        <h2>You have {pots.length === 1 ? 'a payout' : 'payouts'} to collect</h2>
         <p>
-          The winnings sit in escrow until you claim them. If nobody claims before the
-          timer runs out, both stakes are refunded instead — you would get your stake
-          back but lose the winnings.
+          {pots.every((p) => p.kind === 'draw') ? (
+            <>
+              This one was a draw, so your own stake comes back to you in full and no fee is
+              taken. Claiming settles it on chain and moves the ETH to your wallet. There is no
+              rush: a draw refunds either way.
+            </>
+          ) : pots.every((p) => p.kind === 'win') ? (
+            <>
+              Your winnings are the pot less the house fee, and they sit in escrow until you
+              claim them. Claiming takes two steps, settling the
+              result and then withdrawing. If nobody settles before the timer runs out, the
+              wager refunds both stakes instead, so you would get your stake back and lose the
+              winnings.
+            </>
+          ) : (
+            <>
+              Claiming settles each result on chain and moves the ETH to your wallet. A win pays
+              the pot less the fee, and expires to a refund if nobody settles before its timer
+              runs out. A draw returns your own stake with no fee and no deadline.
+            </>
+          )}
         </p>
       </div>
+      )}
 
       {error && <div className="uc__error">{error}</div>}
 
@@ -195,12 +299,18 @@ export function UnclaimedPots({ signedIn }: { signedIn: boolean }) {
           <li className="uc__row" key={p.wagerId}>
             <div className="uc__what">
               <span className="uc__amount">
-                {formatEth((BigInt(p.stakeWei) * 2n).toString())} {CURRENCY}
+                {formatEth(payoutWei(p.kind, p.stakeWei, feeBps).toString())} {CURRENCY}
               </span>
               <span className="uc__kind">
-                {p.kind === 'draw' ? 'draw — stake refunded' : 'won'}
+                {p.kind === 'draw' ? 'draw, your stake back' : 'won, after the fee'}
               </span>
-              <Countdown at={deadlines[p.onchainId]} />
+              {/* A draw refunds either way, so its timer carries no risk and showing a
+                  countdown there only invents urgency. Wins are the case that can expire. */}
+              {p.kind === 'win' ? (
+                <Countdown at={deadlines[p.onchainId]} />
+              ) : (
+                <span className="uc__safe">no deadline, a draw refunds either way</span>
+              )}
             </div>
             <button
               className="uc__claim"

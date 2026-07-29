@@ -113,3 +113,34 @@
   }
   .uc__claim { width: 100%; }
 }
+
+/* The reassurance shown in place of a countdown on a drawn wager. Deliberately quiet: it is
+   the absence of urgency, so it must not read as a warning. Lives here, with the rest of the
+   .uc__ rules, because the page imports this file and not wagers.css. */
+.uc__safe { font-size: 12px; color: var(--faint); }
+
+/* Confirmation of a completed claim. Kept on screen after the row it describes has gone,
+   because `refresh()` empties the list and the section would otherwise vanish, leaving a
+   successful claim looking exactly like a claim that never happened. */
+.uc__done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 14px 16px;
+  margin: 0 0 14px;
+  border: 1px solid rgba(63, 168, 119, 0.45);
+  background: rgba(63, 168, 119, 0.1);
+  border-radius: 10px;
+  font-size: 14px;
+}
+.uc__done-link { color: inherit; text-decoration: underline; font-size: 13px; }
+.uc__done-x {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--faint);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}

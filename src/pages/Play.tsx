@@ -244,19 +244,37 @@ export default function Play() {
 
   /* ---------------- battle resumption ---------------- */
 
-  // A battle in progress always wins over the lobby — a wagered match should
-  // never be lost to a refresh or a stray navigation.
+  /**
+   * A battle in progress always wins over the lobby, and this POLLS rather than checking once.
+   *
+   * Checking only on mount covered a refresh but not the case that actually matters: the
+   * player who POSTED a wager is sitting in the lobby when someone accepts it. The acceptor
+   * navigates itself in from the accept call, the creator was never told anything. Their wager
+   * simply vanished from the board, they sat there, and about 30 seconds later the server
+   * force-ended the match. On a paid wager that is a real stake decided by a UI gap.
+   *
+   * Two seconds, not the board's five: being dropped into a battle you are already losing time
+   * in is worse than a slightly stale list. The poll stops as soon as a room is found, and
+   * never runs while already in a battle.
+   */
   useEffect(() => {
     if (!signedIn || routeRoom) return
     let live = true
-    api
-      .get<{ roomId: string | null }>('/api/battle/current')
-      .then((r) => {
+
+    const check = async () => {
+      try {
+        const r = await api.get<{ roomId: string | null }>('/api/battle/current')
         if (live && r.roomId) setMode({ kind: 'battle', roomId: r.roomId })
-      })
-      .catch(() => {})
+      } catch {
+        // Silent: a failed poll just means we look again in two seconds.
+      }
+    }
+
+    void check()
+    const id = setInterval(() => void check(), 2000)
     return () => {
       live = false
+      clearInterval(id)
     }
   }, [signedIn, routeRoom])
 
