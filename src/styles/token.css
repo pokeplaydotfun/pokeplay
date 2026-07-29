@@ -173,3 +173,53 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- live token stats ---- */
+
+/* Two wide tiles rather than a row of small ones: there are exactly two figures and both are
+   headline numbers, so giving them room reads as a dashboard instead of a stat strip. */
+.tk__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.tk__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  /* --white, not --bg-raised: the latter is defined only inside .slabs-root (the gacha app's
+     own palette) and this page is outside that scope, so it would resolve to nothing and the
+     tiles would come out transparent. */
+  background: var(--white);
+  min-width: 0;
+}
+.tk__stat-label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Tabular figures so a refresh does not shuffle the digits sideways. */
+.tk__stat-value {
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tk__stat-sub { font-size: 12.5px; color: var(--faint); }
+.tk__stats-note {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--faint);
+  text-align: center;
+}
+@media (max-width: 560px) {
+  .tk__stats { grid-template-columns: 1fr; }
+}

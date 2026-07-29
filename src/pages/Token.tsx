@@ -1,5 +1,6 @@
 import { EXPLORER, TOKEN, SLABS_ENABLED } from '../config'
 import { Address } from '../components/Address'
+import { TokenStats } from '../components/TokenStats'
 import '../styles/token.css'
 
 /**
@@ -114,6 +115,11 @@ export default function Token() {
             </div>
           </div>
         )}
+
+        {/* Live fee + market-cap dashboard. Sits under the Cards block because it is the
+            evidence for the claims made above it: those sections say the fees fund things,
+            this shows what the fees actually are. */}
+        {SLABS_ENABLED && <TokenStats />}
 
       </div>
     </section>
