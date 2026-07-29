@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly PokePlay gacha database backup
+
+[Timer]
+# 04:25 - clear of pwa-api's 03:30 cron and slabshowdown's 04:12 timer.
+OnCalendar=*-*-* 04:25:00
+Persistent=true
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

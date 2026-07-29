@@ -13,7 +13,7 @@
  * of WHO OWNS WHAT lives only here. Losing this file does not lose the assets; it loses the
  * ability to say whose they are.
  *
- *   node scripts/backup-db.mjs [--db PATH] [--out DIR] [--keep N]
+ *   node scripts/backup-db.mjs [--db PATH] [--out DIR] [--keep N] [--prefix NAME]
  *
  * Defaults match production: the path systemd passes as DB_PATH, /root/pwa-backups, 14 days.
  */
@@ -30,11 +30,21 @@ const arg = (name, fallback) => {
 const dbPath = arg("db", process.env.DB_PATH ?? "/root/pwa-data/pwa.sqlite");
 const outDir = arg("out", "/root/pwa-backups");
 const keep = Number(arg("keep", "14"));
+/**
+ * Filename prefix. Defaults to "pwa" so existing snapshots and their pruning are unaffected.
+ *
+ * It exists because ONE script now backs up two different products whose databases share an
+ * identical schema but hold different custody records - pokeplay's gacha and rhcards'. A file
+ * named `pwa-*.sqlite` sitting in pokeplay's backup directory invites restoring the wrong
+ * product's history, and the schema match means nothing would complain: it would simply
+ * attribute the wrong cards to the wrong people.
+ */
+const prefix = arg("prefix", "pwa");
 
 // Colons are legal in filenames but make paths awkward to handle in a shell, which is where
 // a restore happens and where nobody wants to be quoting things.
 const stamp = new Date().toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 19);
-const target = join(outDir, `pwa-${stamp}.sqlite`);
+const target = join(outDir, `${prefix}-${stamp}.sqlite`);
 
 mkdirSync(outDir, { recursive: true });
 
@@ -58,7 +68,9 @@ if (size === 0) {
 // Prune by filename, which sorts chronologically because the stamp is ISO-8601. Reading mtimes
 // would be wrong here: copying the directory forward would reset them all and delete everything.
 const snapshots = readdirSync(outDir)
-  .filter((f) => /^pwa-.*\.sqlite$/.test(f))
+  // Must use the SAME prefix the write above used, or pruning silently stops matching and
+  // snapshots accumulate forever.
+  .filter((f) => f.startsWith(`${prefix}-`) && f.endsWith(".sqlite"))
   .sort();
 
 const stale = snapshots.slice(0, Math.max(0, snapshots.length - keep));

@@ -1,0 +1,12 @@
+[Unit]
+Description=PokePlay gacha database backup (SQLite online snapshot, verified + gzipped)
+After=network.target
+
+[Service]
+Type=oneshot
+User=slabs
+Group=slabs
+Environment=HOME=/var/lib/slabs
+# --db and --out are explicit: the script's defaults point at the rhcards paths
+# (/root/pwa-data, /root/pwa-backups), which this unit must never touch.
+ExecStart=/usr/bin/node /srv/slabs/backend/scripts/backup-db.mjs --db /var/lib/slabs/slabs.sqlite --out /var/backups/slabs --keep 14 --prefix pokeplay
