@@ -19,6 +19,7 @@ import { CURRENCY } from '../config'
 import { describeTxError, isUserRejection } from '../lib/escrow'
 import { poolAbi, poolAddress, poolReady, tournamentIdFromReceipt } from '../lib/tournamentPool'
 import { Banner, Empty, Spinner } from '../components/ui'
+import usdgIcon from '/slabs/usdg.png'
 import '../styles/tournaments.css'
 
 type Row = {
@@ -117,7 +118,17 @@ export default function Tournaments() {
                     </span>
                     {t.prizeUsdCents ? (
                       <span className="tn__prize-tag">
-                        🏆 {usdCentsToUsdg(t.prizeUsdCents)} prize
+                        {/* The coin, not a trophy: this badge states an amount of USDG, and
+                            the trophy is reserved for actually winning (champion banner,
+                            champions board). Same mark the wallet and shop use. */}
+                        <img
+                          className="usdg-icon tn__prize-coin"
+                          src={usdgIcon}
+                          alt=""
+                          width={14}
+                          height={14}
+                        />
+                        {usdCentsToUsdg(t.prizeUsdCents)} prize
                       </span>
                     ) : null}
                     <span className="tn__when">

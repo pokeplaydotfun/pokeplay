@@ -178,8 +178,19 @@
 
 /* ---- prize pool card ---- */
 .tn__prize-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--gold);
   font-weight: 600;
+}
+
+/* Sized in em, not px, so the coin tracks the meta row's font size at every breakpoint
+   instead of drifting out of proportion. The width/height attributes on the <img> reserve
+   the box while it loads, so the row never reflows once it arrives. */
+.tn__prize-coin {
+  width: 1.05em;
+  height: 1.05em;
 }
 .tn__pool {
   display: flex;

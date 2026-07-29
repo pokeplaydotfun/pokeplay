@@ -153,12 +153,6 @@
   line-height: 1.6;
   color: var(--muted);
 }
-.tk__who-note {
-  margin: 16px 0 0;
-  text-align: center;
-  font-size: 13px;
-  color: var(--faint);
-}
 @media (max-width: 560px) {
   .tk__who { grid-template-columns: 1fr; }
 }

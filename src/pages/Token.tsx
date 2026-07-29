@@ -98,10 +98,10 @@ export default function Token() {
             </div>
             <div className="tk__who">
               <div className="tk__who-item">
-                <h4>Holders</h4>
+                <h4>Tournaments</h4>
                 <p>
-                  Wallets holding between 0.25% and 4% of the supply are entered into a raffle
-                  every 12 hours to receive a free pack.
+                  Daily tournaments are funded by the fees creating ongoing competitions with
+                  rewards for players.
                 </p>
               </div>
               <div className="tk__who-item">
@@ -112,7 +112,6 @@ export default function Token() {
                 </p>
               </div>
             </div>
-            <p className="tk__who-note">Rewards are distributed automatically as free packs.</p>
           </div>
         )}
 
