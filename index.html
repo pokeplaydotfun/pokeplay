@@ -16,11 +16,34 @@
     />
     <link rel="apple-touch-icon" href="/brand/pokeplay-logo.png" />
 
+    <!--
+      Link previews. og:image MUST be an absolute URL: X and every other crawler fetches it
+      without a page to resolve a relative path against, so "/brand/pokeplay-logo.png" silently
+      failed and the card fell back to a placeholder icon. The twitter:* tags are set explicitly
+      rather than left to fall through to og:*, because some crawlers only read their own
+      namespace once any twitter:* tag is present.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PokePlay" />
     <meta property="og:title" content="PokePlay" />
-    <meta property="og:description" content="Build a team. Post a wager. Battle for it." />
-    <meta property="og:image" content="/brand/pokeplay-logo.png" />
+    <meta
+      property="og:description"
+      content="Pokémon Cards, Battles and Tournaments on Robinhood"
+    />
+    <meta property="og:image" content="https://pokeplay.fun/brand/pokeplay-logo.png" />
+    <meta property="og:image:width" content="500" />
+    <meta property="og:image:height" content="500" />
+    <meta property="og:image:alt" content="PokePlay" />
     <meta property="og:url" content="https://pokeplay.fun" />
+
     <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="PokePlay" />
+    <meta
+      name="twitter:description"
+      content="Pokémon Cards, Battles and Tournaments on Robinhood"
+    />
+    <meta name="twitter:image" content="https://pokeplay.fun/brand/pokeplay-logo.png" />
+    <meta name="twitter:image:alt" content="PokePlay" />
     <meta name="theme-color" content="#fbfaf6" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />

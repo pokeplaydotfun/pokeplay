@@ -11,7 +11,7 @@ import { API_BASE } from '../slabs/client'
  *
  * ⚠ Zeroes and dashes are not interchangeable here. A "$0" beside "Fees generated" reads as
  * "this is live and nobody is trading", which is a claim about the token. Until the server says
- * `live`, every figure stays a dash and the panel says plainly that it is not launched.
+ * `live`, every figure stays a dash and the sub-line reads "Not launched".
  *
  * ⚠ Path: this must go to `API_BASE` (the gacha backend, served at /slabs-api), NOT to
  * `/api/token/stats`. On the other deployment the gacha backend IS /api, so the ported copy in
@@ -44,7 +44,6 @@ const price = (n: number) =>
 
 export function TokenStats() {
   const [stats, setStats] = useState<Stats | null>(null)
-  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     if (!API_BASE) return
@@ -55,14 +54,10 @@ export function TokenStats() {
         const res = await fetch(`${API_BASE}/token/stats`, { signal: AbortSignal.timeout(10_000) })
         if (!res.ok) throw new Error(String(res.status))
         const body = (await res.json()) as Stats
-        if (!cancelled) {
-          setStats(body)
-          setFailed(false)
-        }
+        if (!cancelled) setStats(body)
       } catch {
-        // Fails quiet: a stats outage must not put an error banner on the token page. The
-        // previous reading stays on screen, and a first failure simply shows dashes.
-        if (!cancelled) setFailed(true)
+        // Fails quiet: a stats outage must not put an error banner on the token page. Whatever
+        // was last read stays on screen, and a first failure simply leaves the dashes.
       }
     }
 
@@ -82,12 +77,7 @@ export function TokenStats() {
     <div className="tk__block">
       <div className="tk__block-head">
         <div className="eyebrow">Token</div>
-        <h3>Fees and market cap, live</h3>
-        <p>
-          {live
-            ? 'Read from the Pons pool and refreshed every minute.'
-            : 'These figures start reporting the moment the token is launched.'}
-        </p>
+        <h3>Token Metrics</h3>
       </div>
 
       <div className="tk__stats">
@@ -108,13 +98,6 @@ export function TokenStats() {
         </div>
       </div>
 
-      {!live && (
-        <p className="tk__stats-note">
-          {failed
-            ? 'Live figures are unavailable right now. They will reappear on their own.'
-            : 'The token has not launched yet, so there are no fees or market cap to report.'}
-        </p>
-      )}
     </div>
   )
 }

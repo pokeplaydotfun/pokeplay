@@ -14,24 +14,6 @@ import '../styles/token.css'
  * money to.
  */
 
-const PLAN = [
-  {
-    n: '01',
-    title: 'Fees',
-    body: 'Our tokens trading fees gathers in a treasury wallet.',
-  },
-  {
-    n: '02',
-    title: 'Tournaments',
-    body: 'That treasury funds the prize pools for daily tournaments.',
-  },
-  {
-    n: '03',
-    title: 'Prizes',
-    body: 'Play the tournaments and compete for those prizes.',
-  },
-]
-
 export default function Token() {
   const ca = TOKEN.address
   const live = Boolean(ca)
@@ -71,31 +53,12 @@ export default function Token() {
           )}
         </div>
 
-        {/* ---- the plan ---- */}
-
-        <div className="tk__block">
-          <div className="tk__block-head">
-            <div className="eyebrow">How it works</div>
-            <h3>Trading fees fund the tournaments</h3>
-          </div>
-
-          <ol className="tk__plan">
-            {PLAN.map((s) => (
-              <li className="tk__plan-step" key={s.n}>
-                <span className="tk__plan-n">{s.n}</span>
-                <h4>{s.title}</h4>
-                <p>{s.body}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-
         {/* ---- card rewards: merged build only ---- */}
         {SLABS_ENABLED && (
           <div className="tk__block">
             <div className="tk__block-head">
-              <div className="eyebrow">Cards</div>
-              <h3>The same fees fund tournaments and reward card players</h3>
+              <div className="eyebrow">How it works</div>
+              <h3>The fees fund tournaments and player rewards.</h3>
             </div>
             <div className="tk__who">
               <div className="tk__who-item">
@@ -106,7 +69,7 @@ export default function Token() {
                 </p>
               </div>
               <div className="tk__who-item">
-                <h4>Leaderboard</h4>
+                <h4>Leaderboards</h4>
                 <p>
                   The top participants on the Cards leaderboard earn free packs each week for
                   contributing to the ecosystem.

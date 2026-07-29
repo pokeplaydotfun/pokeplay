@@ -141,6 +141,9 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+  /* Centred to match the stat tiles below, so the whole page reads as one set of cards
+     rather than two different treatments stacked on top of each other. */
+  text-align: center;
 }
 .tk__who-item h4 {
   margin: 0 0 8px;
@@ -186,6 +189,10 @@
 .tk__stat {
   display: flex;
   flex-direction: column;
+  /* Centred: two tiles side by side with left-aligned text read as a form, and the label,
+     figure and sub-line are one stacked statement rather than a column of fields. */
+  align-items: center;
+  text-align: center;
   gap: 4px;
   padding: 18px 20px;
   border: 1px solid var(--line);
