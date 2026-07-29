@@ -4238,6 +4238,21 @@
    and for confirmations does not read as an error. */
 .slabs-root .dep-error { border: 1px solid rgba(180, 57, 47, 0.4); background: rgba(180, 57, 47, 0.07); color: #8f2f27; }
 
+/* A card lookup that failed, with the retry beside it. Distinct from .dep-error alone so the
+   message and its recovery read as one block rather than a stray line of red. */
+.slabs-root .dep-loadfail { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.slabs-root .dep-loadfail button {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.slabs-root .dep-loadfail button:hover { background: var(--bg-hover); border-color: var(--line-bright); }
+.slabs-root .dep-loadfail button:focus-visible { outline: 2px solid #6d4aff; outline-offset: 3px; }
+
 /* An interrupted deposit: the card is in the vault, the mirror was never minted. Surfaced
    loudly because the alternative is a user's card sitting with us and no sign of it. */
 .slabs-root .dep-pending {

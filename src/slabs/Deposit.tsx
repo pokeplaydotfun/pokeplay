@@ -48,9 +48,12 @@ export function DepositPage() {
   const [busyMint, setBusyMint] = useState<string | null>(null);
   /** Cards already sitting in the vault with no mirror: a deposit that stopped half way. */
   const [pending, setPending] = useState<DepositCard[]>([]);
+  /** A failed card lookup, held apart from `step` so it cannot be mistaken for an empty wallet. */
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
 
   const loadCards = useCallback(async (owner: string) => {
+    setLoadError(null);
     try {
       const { cards: c } = await getDepositCards(owner);
       setCards(c);
@@ -61,8 +64,13 @@ export function DepositPage() {
         setPending(unfinished.map((u) => ({ mint: u.solanaMint, name: null, imageUrl: null })));
       }
     } catch (err) {
-      setStep({ kind: "error", message: err instanceof Error ? err.message : "Could not read your cards." });
-      setCards([]);
+      /**
+       * Kept OUT of `step` and cards left null on purpose. Setting cards to [] used to render
+       * "No Collector Crypt cards in that wallet" — a confident claim about the wallet — on top
+       * of a lookup that never completed. A failed read now says so, and offers a retry.
+       */
+      setLoadError(err instanceof Error ? err.message : "Could not read your cards.");
+      setCards(null);
     }
   }, [address]);
 
@@ -271,7 +279,16 @@ export function DepositPage() {
             </div>
           )}
 
-          {cards === null && <p className="dep-note">Reading your cards…</p>}
+          {loadError && (
+            <div className="dep-loadfail">
+              <p className="dep-error">Could not read your cards: {loadError}</p>
+              <button type="button" onClick={() => void loadCards(solana)}>
+                Try again
+              </button>
+            </div>
+          )}
+
+          {cards === null && !loadError && <p className="dep-note">Reading your cards…</p>}
           {cards?.length === 0 && (
             <p className="dep-note">
               No Collector Crypt cards in that wallet. Only cards from Collector Crypt's vault can

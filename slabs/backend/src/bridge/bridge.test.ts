@@ -279,6 +279,89 @@ describe("DeBridgeClient", () => {
     assert.equal(sent.length, 0, "must not send a second transaction");
   });
 
+  /**
+   * The same protection, on the recovery path that has to ASK deBridge which order a recorded
+   * tx belongs to. `orderIdForTx` used to swallow every failure and return null, and a null
+   * here does not stop execute() — it falls straight through to sending a fresh deposit. So a
+   * timeout or a 500 from deBridge, arriving while a deposit was already on chain, would pay
+   * twice for one transfer. The lookup must fail loudly instead.
+   */
+  test("a failed order-id lookup during recovery must not send a second deposit", async () => {
+    const { sent, signer } = evmSigner();
+    /**
+     * Every endpoint except order-ids answers normally, so that IF the guard regresses the
+     * fallthrough runs to completion and this test fails on the assertions below. An
+     * incomplete stub would leave the poller spinning and the test would hang instead.
+     */
+    const impl = (async (url: string | URL) => {
+      const u = String(url);
+      if (u.includes("order-ids")) return new Response("upstream is down", { status: 500 });
+      const body = u.includes("create-tx")
+        ? CREATE_TX
+        : {
+            status: "ClaimedUnlock",
+            fulfilledDstEventMetadata: { transactionHash: { stringValue: "solfill" } },
+          };
+      return new Response(JSON.stringify(body), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    // depositTx recorded, orderId absent — what a malformed stored payload leaves behind.
+    const store = new Map<string, { depositTx: string; orderId?: string }>([
+      ["order:dbl", { depositTx: "0xalready" }],
+    ]);
+    const client = new DeBridgeClient(testConfig(), {
+      fetchImpl: impl,
+      evm: signer,
+      price: pinnedPrice,
+      store: {
+        get: async (k: string) => store.get(k) ?? null,
+        set: async (k: string, v: { depositTx: string; orderId?: string }) => void store.set(k, v),
+      },
+    });
+
+    await assert.rejects(
+      () => client.execute("rh", "solana", "50000000", { amountOut: "49222670" } as never, "order:dbl"),
+      /order-id lookup/,
+      "a failed lookup must abort the resume",
+    );
+    assert.equal(sent.length, 0, "and above all must not have spent again");
+  });
+
+  /** The other side of it: a genuine "no order for this tx" still permits a fresh send. */
+  test("an affirmative empty order list still allows a new deposit", async () => {
+    const { sent, signer } = evmSigner();
+    const impl = (async (url: string | URL) => {
+      const u = String(url);
+      const body = u.includes("create-tx")
+        ? CREATE_TX
+        : u.includes("order-ids")
+          ? { orderIds: [] } // deBridge answering: that tx produced no order
+          : {
+              status: "ClaimedUnlock",
+              fulfilledDstEventMetadata: { transactionHash: { stringValue: "solfill" } },
+            };
+      return new Response(JSON.stringify(body), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const store = new Map<string, { depositTx: string; orderId?: string }>([
+      ["order:none", { depositTx: "0xfailed" }],
+    ]);
+    const client = new DeBridgeClient(testConfig(), {
+      fetchImpl: impl,
+      evm: signer,
+      price: pinnedPrice,
+      store: {
+        get: async (k: string) => store.get(k) ?? null,
+        set: async (k: string, v: { depositTx: string; orderId?: string }) => void store.set(k, v),
+      },
+    });
+
+    const res = await client.execute("rh", "solana", "50000000", { amountOut: "49222670" } as never, "order:none");
+
+    assert.equal(res.depositTx, "0xdeposit", "a tx that never became an order may be re-sent");
+    assert.equal(sent.length, 1);
+  });
+
   test("execute surfaces a cancelled order as a failure", async () => {
     const { impl } = bridgeStub({ status: "OrderCancelled" });
     const { signer } = evmSigner();

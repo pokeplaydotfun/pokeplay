@@ -424,7 +424,19 @@ export function createApi(deps: ApiDeps): Server {
      * client-side. Publishing our custody wallet on an unauthenticated endpoint was a standing
      * signpost to the wallet holding every card at once.
      */
-    return json(res, 200, { cards: await deps.deposits.cardsOf(owner) });
+    /**
+     * A lookup failure is reported as a failure, never as an empty wallet. Returning
+     * `{cards:[]}` here would render "No Collector Crypt cards in that wallet" over a wallet
+     * that is full of them — the user has no way to tell a broken lookup from an empty one, and
+     * nothing to retry. 502 because the fault is upstream of us, at the Solana RPC.
+     */
+    try {
+      return json(res, 200, { cards: await deps.deposits.cardsOf(owner) });
+    } catch (err) {
+      return json(res, 502, {
+        error: err instanceof Error ? err.message : "could not read that wallet's cards",
+      });
+    }
   });
 
   /**

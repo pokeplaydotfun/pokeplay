@@ -353,16 +353,44 @@ export class DeBridgeClient implements Bridge {
     return this.solana.signAndSend(tx.data, onSent);
   }
 
+  /**
+   * Map a source tx back to its DLN order id.
+   *
+   * THROWS when the lookup FAILS. Null is returned only when deBridge affirmatively answers
+   * that no order exists for this tx.
+   *
+   * That distinction is load-bearing, and it used to be absent. The only caller is the
+   * idempotency recovery at the top of execute(), where a null does not stop anything — it
+   * falls through and sends a SECOND deposit. So reporting "no order" for what was really a
+   * timeout, a 429 or a 500 would pay twice for one transfer, which is precisely the outcome
+   * this recovery path exists to prevent. A failed lookup must therefore abort the resume and
+   * let the caller retry, never quietly license a fresh spend.
+   */
   private async orderIdForTx(txHash: string): Promise<string | null> {
+    let res: Response;
     try {
-      const res = await this.fetchImpl(`${this.cfg.bridge.apiUrl}/dln/tx/${txHash}/order-ids`, {
+      res = await this.fetchImpl(`${this.cfg.bridge.apiUrl}/dln/tx/${txHash}/order-ids`, {
         signal: AbortSignal.timeout(20_000),
       });
-      const body = (await res.json()) as { orderIds?: string[] };
-      return body.orderIds?.[0] ?? null;
-    } catch {
-      return null;
+    } catch (err) {
+      throw new Error(
+        `deBridge order-id lookup for ${txHash} did not respond: ` +
+          `${err instanceof Error ? err.message : String(err)}`,
+      );
     }
+
+    if (!res.ok) {
+      throw new Error(`deBridge order-id lookup for ${txHash} returned HTTP ${res.status}`);
+    }
+
+    let body: { orderIds?: string[] };
+    try {
+      body = (await res.json()) as typeof body;
+    } catch {
+      throw new Error(`deBridge order-id lookup for ${txHash} returned a malformed response`);
+    }
+
+    return body.orderIds?.[0] ?? null;
   }
 
   /**

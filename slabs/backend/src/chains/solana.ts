@@ -56,6 +56,18 @@ export const MIN_SOL_LAMPORTS = 0.03 * LAMPORTS_PER_SOL;
  */
 export const PLACEHOLDER_BLOCKHASH = "11111111111111111111111111111111";
 
+/** One asset as the DAS `getAssetsByOwner` / `getAsset` endpoints return it. */
+type DasAsset = {
+  id: string;
+  interface?: string;
+  grouping?: { group_key?: string; group_value?: string }[];
+  content?: {
+    metadata?: { name?: string };
+    links?: { image?: string };
+    files?: { uri?: string }[];
+  };
+};
+
 export class SolanaChain {
   readonly connection: Connection;
   readonly keypair: Keypair;
@@ -316,53 +328,110 @@ export class SolanaChain {
   }
 
   /**
-   * Every Collector Crypt card a wallet owns, for the deposit picker.
+   * One page of getAssetsByOwner. THROWS, with a message safe to show a stranger.
    *
-   * Filtered by collection HERE rather than in the browser: the same grouping that authorises a
-   * deposit decides what we offer, so the list a user picks from cannot contain something the
-   * verifier would later refuse. Returns empty on any failure — showing nothing is honest,
-   * showing a partial list as if it were complete is not.
+   * Every failure mode is separated out because they used to be indistinguishable: a transport
+   * error, an HTTP 429 and a JSON-RPC error all ended up as "no items", which the caller could
+   * not tell apart from an empty wallet.
+   *
+   * ⚠ The raw error is deliberately NOT interpolated into the thrown message. This RPC endpoint
+   * carries the provider API key in its URL, and the message travels to an unauthenticated
+   * caller via /deposit/cards. Detail goes to the log; the caller gets the shape of the failure.
    */
-  async collectorCryptCardsOf(owner: string, collection: string): Promise<
-    { mint: string; name: string | null; imageUrl: string | null }[]
-  > {
+  private async assetsByOwnerPage(owner: string, page: number, limit: number): Promise<DasAsset[]> {
+    let res: Response;
     try {
-      const res = await fetch(this.connection.rpcEndpoint, {
+      res = await fetch(this.connection.rpcEndpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           jsonrpc: "2.0",
           id: 1,
           method: "getAssetsByOwner",
-          params: { ownerAddress: owner, page: 1, limit: 1000 },
+          params: { ownerAddress: owner, page, limit },
         }),
         signal: AbortSignal.timeout(20_000),
       });
-      const body = (await res.json()) as {
-        result?: {
-          items?: {
-            id: string;
-            interface?: string;
-            grouping?: { group_key?: string; group_value?: string }[];
-            content?: { metadata?: { name?: string }; links?: { image?: string }; files?: { uri?: string }[] };
-          }[];
-        };
-      };
+    } catch (err) {
+      console.error(`getAssetsByOwner(page ${page}) transport failure:`, err);
+      throw new Error("the Solana RPC did not respond");
+    }
 
-      return (body.result?.items ?? [])
-        .filter(
-          (a) =>
-            a.interface === "MplCoreAsset" &&
-            (a.grouping ?? []).some((g) => g.group_key === "collection" && g.group_value === collection),
-        )
-        .map((a) => ({
+    if (!res.ok) {
+      console.error(`getAssetsByOwner(page ${page}) HTTP ${res.status}`);
+      throw new Error(
+        res.status === 429
+          ? "the Solana RPC is rate limiting us — try again in a moment"
+          : `the Solana RPC returned HTTP ${res.status}`,
+      );
+    }
+
+    let body: { result?: { items?: DasAsset[] }; error?: { code?: number; message?: string } };
+    try {
+      body = (await res.json()) as typeof body;
+    } catch (err) {
+      console.error(`getAssetsByOwner(page ${page}) unparseable response:`, err);
+      throw new Error("the Solana RPC returned a malformed response");
+    }
+
+    if (body.error) {
+      console.error(`getAssetsByOwner(page ${page}) JSON-RPC error:`, body.error);
+      throw new Error("the Solana RPC rejected the request");
+    }
+    if (!body.result) {
+      console.error(`getAssetsByOwner(page ${page}) returned no result field`);
+      throw new Error("the Solana RPC returned no result");
+    }
+    return body.result.items ?? [];
+  }
+
+  /**
+   * Every Collector Crypt card a wallet owns, for the deposit picker.
+   *
+   * Filtered by collection HERE rather than in the browser: the same grouping that authorises a
+   * deposit decides what we offer, so the list a user picks from cannot contain something the
+   * verifier would later refuse.
+   *
+   * ⚠ THROWS on failure — it does not return an empty list. Swallowing errors was once described
+   * here as the honest option; it is the opposite. `[]` is a positive claim that the wallet holds
+   * no cards, so a rate-limited or timed-out lookup rendered "No Collector Crypt cards in that
+   * wallet" over a wallet full of them, with no error and nothing to retry. An empty array now
+   * means exactly one thing, and the caller turns a throw into a 502 the page can show.
+   *
+   * Paged to exhaustion for the same reason: a single page of 1000 silently dropped anything
+   * beyond it, which is precisely the "partial list presented as complete" this comment used to
+   * warn against. If even the page cap is exceeded we throw rather than return a truncated list.
+   */
+  async collectorCryptCardsOf(owner: string, collection: string): Promise<
+    { mint: string; name: string | null; imageUrl: string | null }[]
+  > {
+    const PAGE_SIZE = 1000;
+    /** 20k assets in one wallet is far past any real holder; beyond it, refuse rather than lie. */
+    const MAX_PAGES = 20;
+    const out: { mint: string; name: string | null; imageUrl: string | null }[] = [];
+
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      const items = await this.assetsByOwnerPage(owner, page, PAGE_SIZE);
+
+      for (const a of items) {
+        if (a.interface !== "MplCoreAsset") continue;
+        const inCollection = (a.grouping ?? []).some(
+          (g) => g.group_key === "collection" && g.group_value === collection,
+        );
+        if (!inCollection) continue;
+        out.push({
           mint: a.id,
           name: a.content?.metadata?.name ?? null,
           imageUrl: a.content?.links?.image ?? a.content?.files?.[0]?.uri ?? null,
-        }));
-    } catch {
-      return [];
+        });
+      }
+
+      // A short page is the last page. An exactly-full one means there may be more.
+      if (items.length < PAGE_SIZE) return out;
     }
+
+    console.error(`getAssetsByOwner: ${owner} exceeded ${MAX_PAGES} pages`);
+    throw new Error("that wallet holds too many assets to list");
   }
 
   /**
