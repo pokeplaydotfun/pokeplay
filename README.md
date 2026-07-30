@@ -269,16 +269,6 @@ launched, rather than zeroes that would read as a live market with no trading.
 Launching is a matter of setting the token address in the backend environment and
 `VITE_TOKEN_ADDRESS` for the frontend. No code change.
 
-## Legal reality check
-
-This is real money wagering and real money card trading. Two things are worth a lawyer's time:
-
-1. **Gambling regulation.** Paid entry for a prize decided partly by chance is regulated very
-   differently by jurisdiction, and a footer saying "18+ where legal" is not a compliance strategy.
-2. **IP.** The battling side is built on Pokemon species, stats, movesets and sprites served from
-   PokeAPI. Fan projects that take real money are the ones that attract letters.
-
-Neither is a reason the code does not work. Both are reasons to get advice.
 
 ## Layout
 
