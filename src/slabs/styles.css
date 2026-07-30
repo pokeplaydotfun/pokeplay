@@ -348,6 +348,7 @@
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 66px);
+  min-height: calc(100dvh - 66px);
 }
 /* Never let the shell stretch a short page's content to fill the column. */
 .slabs-root .page > * { flex: none; }
@@ -2939,6 +2940,7 @@
 .slabs-root .market-picker {
   width: min(820px, 100%);
   max-height: min(82vh, 760px);
+  max-height: min(82dvh, 760px);
   display: flex;
   flex-direction: column;
   background: var(--bg-panel);
@@ -3737,7 +3739,14 @@
   .slabs-root .addr-value { font-size: 11.5px; }
 
   .slabs-root .cd-backdrop { padding: 0; }
-  .slabs-root .cd { max-height: 100vh; border-radius: 0; border: 0; width: 100%; }
+  /* dvh after vh, not instead of it: `vh` on iOS measures the viewport WITHOUT the browser
+     chrome, so a full-height sheet is taller than what is actually on screen. The duplicate
+     declaration leaves older browsers on vh and gains the correct height everywhere else. */
+  .slabs-root .cd {
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0; border: 0; width: 100%;
+  }
 
   .slabs-root .lb-tabs { width: 100%; justify-content: center; }
   .slabs-root .lb-tab { flex: 1; padding: 9px 12px; }
@@ -5233,6 +5242,7 @@
 .slabs-root .cd {
   width: min(1120px, 100%);
   max-height: min(880px, calc(100vh - 48px));
+  max-height: min(880px, calc(100dvh - 48px));
   display: flex;
   flex-direction: column;
   background: var(--bg-raised);
@@ -6536,7 +6546,14 @@
   .slabs-root .addr-value { font-size: 11.5px; }
 
   .slabs-root .cd-backdrop { padding: 0; }
-  .slabs-root .cd { max-height: 100vh; border-radius: 0; border: 0; width: 100%; }
+  /* dvh after vh, not instead of it: `vh` on iOS measures the viewport WITHOUT the browser
+     chrome, so a full-height sheet is taller than what is actually on screen. The duplicate
+     declaration leaves older browsers on vh and gains the correct height everywhere else. */
+  .slabs-root .cd {
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0; border: 0; width: 100%;
+  }
 
   .slabs-root .lb-tabs { width: 100%; justify-content: center; }
   .slabs-root .lb-tab { flex: 1; padding: 9px 12px; }

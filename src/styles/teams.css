@@ -556,6 +556,7 @@
 .tb-movemodal {
   max-width: 520px;
   height: min(78vh, 680px);
+  height: min(78dvh, 680px);
 }
 
 .tb-movemodal__search {

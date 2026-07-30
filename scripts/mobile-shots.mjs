@@ -23,6 +23,26 @@ const out = positional[1] ?? "/tmp/mobile-shots";
 const WIDTH = Number(flags.find((f) => f.startsWith("--width="))?.split("=")[1] ?? 390);
 const HEIGHT = Number(flags.find((f) => f.startsWith("--height="))?.split("=")[1] ?? 844);
 const WANT_BATTLE = flags.includes("--battle");
+/**
+ * --cards walks the gacha section with a STUBBED injected wallet, because every page in it
+ * beyond the shop floor renders a "connect" state otherwise — deposit, withdraw, transfer and
+ * messages are exactly the screens that never get looked at on a phone. Read-only: the stub
+ * answers account/chain queries itself and forwards everything else to a public RPC, and this
+ * pass never clicks anything that would sign or send.
+ */
+const WANT_CARDS = flags.includes("--cards");
+/**
+ * --reveal drives an actual pack opening against the DEMO backend (slabs/backend/src/demo.ts,
+ * real pipeline + mock CC/bridge/minter, no money). The reveal is a full-screen takeover that
+ * exists for a few seconds after a purchase, so it cannot be reached by visiting a URL — and it
+ * is the centrepiece of a $50-$1000 flow, which makes it the last thing that should go
+ * unchecked on a phone.
+ */
+const WANT_REVEAL = flags.includes("--reveal");
+const STUB_RPC = flags.find((f) => f.startsWith("--rpc="))?.split("=")[1]
+  ?? "https://rpc.mainnet.chain.robinhood.com";
+const STUB_ADDRESS = flags.find((f) => f.startsWith("--as="))?.split("=")[1]
+  ?? "0x1111111111111111111111111111111111111111";
 /** --desktop drops the touch emulation, so the same run can prove the wide layout still works. */
 const DESKTOP = flags.includes("--desktop");
 const API = process.env.API_BASE ?? "http://127.0.0.1:8090";
@@ -107,6 +127,13 @@ const ctx = await browser.newContext({
   isMobile: !DESKTOP,
   hasTouch: !DESKTOP,
 });
+if (WANT_CARDS) {
+  const { walletStub } = await import("./dry-run/wallet-stub.mjs");
+  await ctx.addInitScript(
+    walletStub({ address: STUB_ADDRESS, rpc: STUB_RPC, chainIdHex: "0x1237" }),
+  );
+}
+
 const page = await ctx.newPage();
 const problems = [];
 
@@ -132,6 +159,90 @@ for (const [name, path] of [
 ]) {
   await page.goto(base + path, { waitUntil: "load" });
   await shot(name);
+}
+
+if (WANT_CARDS) {
+  for (const [name, path] of [
+    ["cards-gacha", "/cards/gacha"],
+    ["cards-collection", "/cards/collection"],
+    ["cards-marketplace", "/cards/marketplace"],
+    ["cards-deposit", "/cards/deposit"],
+    ["cards-withdraw", "/cards/withdraw"],
+    ["cards-transfer", "/cards/transfer"],
+    ["cards-messages", "/cards/messages"],
+  ]) {
+    await page.goto(base + path, { waitUntil: "load" });
+    // The inner app routes on the History API and fetches per tab, so give it a beat.
+    await page.waitForTimeout(2500);
+    await shot(name);
+  }
+}
+
+if (WANT_REVEAL) {
+  await page.goto(base + "/cards/gacha", { waitUntil: "load" });
+  await page.waitForTimeout(3000);
+  const demo = page.getByRole("button", { name: /try a demo pack/i });
+  if (!(await demo.count())) {
+    console.log("\n!! no demo-pack button — is the backend the demo server (API_PORT=8787 demo.ts)?");
+  } else {
+    await demo.first().click();
+    // Staged copy, then the card. Sampled rather than waited on a selector so a stall shows up
+    // as an empty stage instead of a timeout.
+    for (const [i, ms] of [700, 1200, 1800, 2600, 4000].entries()) {
+      await page.waitForTimeout(i === 0 ? ms : ms - [700, 1200, 1800, 2600, 4000][i - 1]);
+      await shot(`reveal-${i + 1}`);
+    }
+    // Dismiss and look at the collection the pull landed in.
+    const close = page.getByRole("button", { name: /close|done|keep/i });
+    if (await close.count()) await close.first().click();
+    await page.goto(base + "/cards/collection", { waitUntil: "load" });
+    await page.waitForTimeout(2500);
+    await shot("cards-collection-full");
+
+    /*
+     * The card sheet, which is where sell-back / withdraw / transfer live. It is the one screen
+     * in the section whose mobile rule is `max-height: 100vh`, and 100vh is TALLER than what an
+     * iOS browser actually shows, so its actions are the likeliest thing on the site to end up
+     * under the browser chrome. Report anything below the fold rather than trusting the picture.
+     */
+    /* The floor's card grid, not the collection: the collection is built from on-chain
+       ownership, which the demo backend cannot mint, so it is always empty here. Both open the
+       same sheet. */
+    await page.goto(base + "/cards/gacha", { waitUntil: "load" });
+    await page.waitForTimeout(3000);
+    const tile = page.locator(".slabs-root article.prize:not(.skeleton)").first();
+    if (await tile.count()) {
+      await tile.scrollIntoViewIfNeeded();
+      await tile.click();
+      await page.waitForTimeout(1500);
+      await shot("card-sheet");
+      const below = await page.evaluate(() => {
+        const vh = window.innerHeight;
+        const out = [];
+        for (const el of document.querySelectorAll(".slabs-root button, .slabs-root a")) {
+          const r = el.getBoundingClientRect();
+          if (r.height === 0 || r.width === 0) continue;
+          if (r.top > vh - 4 || r.bottom > vh + 4) {
+            out.push({
+              text: (el.textContent ?? "").trim().slice(0, 26),
+              top: Math.round(r.top),
+              bottom: Math.round(r.bottom),
+              vh,
+            });
+          }
+        }
+        return out.slice(0, 8);
+      });
+      if (below.length) {
+        console.log("    controls at or past the fold in the open sheet:");
+        for (const b of below) console.log(`      "${b.text}"  top=${b.top} bottom=${b.bottom} (viewport ${b.vh})`);
+      } else {
+        console.log("    every control in the open sheet is above the fold");
+      }
+    } else {
+      console.log("    !! no card tile found on the collection page");
+    }
+  }
 }
 
 /* ---- sign in with a dev account, so the play surface renders ---- */

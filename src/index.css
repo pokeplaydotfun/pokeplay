@@ -1140,6 +1140,7 @@ button {
   width: 100%;
   max-width: 420px;
   max-height: 90vh;
+  max-height: 90dvh;
   display: flex;
   flex-direction: column;
   background: var(--cream);
@@ -1658,6 +1659,7 @@ main > .battle {
   display: grid;
   place-items: center;
   min-height: 46vh;
+  min-height: 46dvh;
 }
 
 /* ------------------------------------------------------------------ */
