@@ -23,7 +23,9 @@ Battles and wagers:
 * Wager board, free and paid (ETH) 1v1 matches, minimum paid stake 0.001 ETH
 * Tournaments, single elimination, free or paid entry, winner take all
 * Spectator mode, watch any live match, plus provably fair replays re-derived from the revealed seed
-* Leaderboard, usernames, profiles, wallet privacy toggle
+* Leaderboard, usernames, profiles, wallet privacy toggle. Free wins against any one opponent are
+  capped (`RIVAL_CAP`, 3) so two accounts trading wins cannot climb it; staked wagers and tournament
+  matches are exempt, because farming a match that costs both sides real money loses money
 
 Cards:
 
@@ -35,12 +37,14 @@ Cards:
 * Deposit, send a Collector Crypt card in and receive a mirror for it
 * Marketplace for mirrors, and a cards leaderboard by packs opened and total value
 
-Not live yet:
+The token:
 
-* The `$PLAY` token. The `/token` page shows `TBA` for the contract address, and the live fee and
-  market cap dashboard reports dashes rather than zeroes until the token launches.
+* `$PLAY` is launched on Pons. The `/token` page carries a live dashboard of fees generated and
+  market cap, read from the pool on chain, and the contract address is copyable on both the
+  homepage and the token page.
 
-Nothing invents a number. Anything not yet real renders as a dash or a "planned" state.
+Nothing invents a number. Anything not yet real renders as a dash rather than a zero — a `$0`
+beside "fees generated" would read as a live market nobody is trading, which is a claim of its own.
 
 ## Deployed contracts, Robinhood Chain, chain id 4663
 
@@ -48,6 +52,11 @@ Battles:
 
 * `PokePlayEscrow` (1v1 wagers) `0xdE1405268a4194853573b5cF4270CaAEDaeCdAA0`
 * `PokePlayTournamentPool` `0x4d75665a2c461b3c115c353a845f0dd2fc11f6ad`
+
+Token:
+
+* `$PLAY` (launched on Pons) `0x1dd4495325fea70a48966b1fff189d30a44a7840`
+* its WETH pool `0xefBeAdc3483691c4A8D1ed18e3506fA3B29295db`
 
 Cards:
 
@@ -105,7 +114,7 @@ Frontend `.env.local`:
 VITE_API_BASE=http://127.0.0.1:8090
 VITE_ESCROW_ADDRESS=            # set after deploying, empty disables paid wagers
 VITE_TOURNAMENT_POOL_ADDRESS=   # set after deploying, empty disables paid tournaments
-VITE_TOKEN_ADDRESS=             # set after launching on Pons, empty renders TBA
+VITE_TOKEN_ADDRESS=             # overrides the launched CA in src/config.ts (testnet/local only)
 VITE_SLABS_ENABLED=             # true to mount the cards section
 VITE_API_URL=                   # the cards backend, empty runs a browser mock
 VITE_WALLETCONNECT_PROJECT_ID=
@@ -146,10 +155,20 @@ npm run dry-run                    # full escrow lifecycle on anvil
 npm run dry-run:ui                 # real Chromium and a stubbed wallet through the wager and tournament UI
 npm run dry-run:fork               # drives the REAL mainnet contract on a fork, no funds spent
 npm run dry-run:tournament-server  # the paid tournament flow through server and pool
+
+node scripts/mobile-shots.mjs http://localhost:5174 /tmp/shots --width=390 --battle
 ```
 
 The e2e run signs in with real secp256k1 signatures, saves teams, posts and accepts a wager, plays a
 full 6v6 over the websocket, and verifies the revealed seed hashes to the pre-match commitment.
+
+`scripts/mobile-shots.mjs` is the phone pass. It screenshots every page at a chosen viewport and
+MEASURES two things a screenshot cannot show: elements whose right edge is past the viewport (the
+root uses `overflow-x: clip`, so those are silently cut off rather than making the page pan) and
+content hidden inside a horizontal scroller. `--battle` signs in with a dev account, builds a team
+and drives a real practice match, because the battle UI does not exist at any URL; `--cards` walks
+the gacha section with a stubbed wallet; `--reveal` opens a pack against the demo backend;
+`--desktop` proves the wide layout still works. It needs the local stack on `DEV_LOGIN=1`.
 
 The fork run is the one worth knowing about. It forks Robinhood mainnet and drives the actually
 deployed escrow, same bytecode, same constructor arguments, same accrued state, same chain id. It is
@@ -261,12 +280,16 @@ directly, and the record of who owns what is backed up nightly.
 
 ## The token
 
-`$PLAY` is not launched. The `/token` page carries a live dashboard of fees generated and market cap,
-read from the Pons pool by the cards backend at `/token/stats`. Until `PONS_TOKEN_ADDRESS` is set the
-endpoint reports `live: false` and the page shows dashes with a plain statement that the token has not
-launched, rather than zeroes that would read as a live market with no trading.
+**`$PLAY` is live: `0x1dd4495325fea70a48966b1fff189d30a44a7840`**, launched on Pons, pooled
+against WETH at `0xefBeAdc3483691c4A8D1ed18e3506fA3B29295db`.
 
-Launching is one command once the token exists on Pons:
+The `/token` page carries a live dashboard of fees generated and market cap, read from the Pons
+pool by the cards backend at `/token/stats` and refreshed every 60s. Before a token exists that
+endpoint reports `live: false` and the page shows dashes rather than zeroes, with a plain
+statement that nothing has launched — a `$0` beside "fees generated" describes a traded market,
+which is a different claim from the absence of one.
+
+Launching, or relaunching, is one command:
 
 ```
 ./scripts/launch-token.sh --dry-run <tokenAddress> [feeWallet]   # verifies, changes nothing
@@ -280,10 +303,10 @@ and restarts it, waits for `/token/stats` to report `live: true`, then writes th
 `TOKEN_ADDRESS_DEFAULT` in `src/config.ts` and deploys, confirming the address really reached
 the served bundle. `--clear` reverses all of it.
 
-The address is a source default rather than a build variable on purpose: `scripts/deploy.sh`
-ships the working tree with a fixed build line, so an address that lived only in the
-environment would vanish on the next routine deploy and put "TBA" back on a launched token.
-The run leaves `src/config.ts` modified — commit it.
+The address is a source default (`TOKEN_ADDRESS_DEFAULT` in `src/config.ts`) rather than a build
+variable on purpose: `scripts/deploy.sh` ships the working tree with a fixed build line, so an
+address that lived only in the environment would vanish on the next routine deploy and put "TBA"
+back on a launched token. The run leaves `src/config.ts` modified — commit it.
 
 
 ## Layout
