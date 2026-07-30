@@ -158,6 +158,9 @@
 }
 @media (max-width: 560px) {
   .tk__who { grid-template-columns: 1fr; }
+  /* 12px text with no padding is a 19px-tall link — too small to hit beside the CA it sits
+     next to, which is the one thing people come to this page to tap. */
+  .tk__ca-explorer { padding: 10px 10px 10px 12px; margin: -10px -6px -10px 2px; }
 }
 
 /* ---- fine print ---- */

@@ -497,7 +497,15 @@
 
 @media (max-width: 900px) {
   .guide {
-    grid-template-columns: 1fr;
+    /*
+     * ⚠ `minmax(0, 1fr)`, NOT `1fr`. A bare `1fr` is `minmax(auto, 1fr)`, and that auto
+     * minimum refuses to shrink below the content's min-content width. Something inside the
+     * guide (a wide fact grid, an unbreakable hash) has a min-content width of ~1540px, so the
+     * column grew to 1540px on a 390px phone and every paragraph was cut off mid-sentence by
+     * the root's `overflow-x: clip`. Nothing looked broken — the text was simply gone.
+     * The desktop rule above already uses minmax(0, 1fr) for exactly this reason.
+     */
+    grid-template-columns: minmax(0, 1fr);
     gap: 0;
     padding-top: 24px;
   }
@@ -553,5 +561,16 @@
 @media (max-width: 620px) {
   .guide-hero {
     padding: 36px 0 28px;
+  }
+}
+
+/*
+ * The TOC bleeds to the screen edge with a negative margin, which has to MATCH the wrap's
+ * padding. Below 360px `.wrap` drops to 12px (index.css) while this still pulled 16px, so the
+ * sticky bar hung 8px past the viewport on the smallest phones.
+ */
+@media (max-width: 360px) {
+  .guide__toc {
+    margin-inline: -12px;
   }
 }

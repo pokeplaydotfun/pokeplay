@@ -57,6 +57,17 @@
   .addr__icon {
     opacity: 0.45;
   }
+
+  /*
+   * On a touch device the copy button is only as tall as its line of text — around 21px in a
+   * table row, which is half a usable target. Padding grows the hit area without moving the
+   * text: the negative margins keep the glyphs exactly where they sit inline, so a table row
+   * or a CA pill does not change shape.
+   */
+  .addr {
+    padding: 7px 8px;
+    margin: -7px -8px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

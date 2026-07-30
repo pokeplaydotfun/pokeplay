@@ -1749,4 +1749,14 @@ body { max-width: 100%; overflow-x: clip; }
   .fair { padding: 28px 22px; }
   .section-head--center > div { max-width: none; }
   .footer__inner { gap: 14px; }
+
+  /*
+   * Touch targets. Both platform guidelines put the reliable minimum around 44px, and a
+   * measuring pass over every page found these three sitting well under it: the footer's
+   * social icons at 34px, and `.mini-btn` (the "+ New" team button, "Edit") at 22px of real
+   * height. A 22px-tall button is a coin flip with a thumb.
+   */
+  .social__btn { width: 44px; height: 44px; }
+  .social__btn svg { width: 17px; height: 17px; }
+  .mini-btn { padding: 10px 14px; font-size: 0.76rem; }
 }

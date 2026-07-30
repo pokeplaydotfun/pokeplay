@@ -402,9 +402,6 @@ export function BattleView({ roomId, onLeave }: { roomId: string | undefined; on
                   <HpBox mon={me} team={view.you.team} isPlayer />
                 </div>
 
-                {/* the action menu, overlaid bottom-left */}
-                <div className="bt-menu-wrap">{renderMenu()}</div>
-
                 {/* opponent-gone / error banners over the arena */}
                 {b.oppGone && (
                   <div className="bt-overlay bt-overlay--warn">
@@ -458,6 +455,16 @@ export function BattleView({ roomId, onLeave }: { roomId: string | undefined; on
                   </div>
                 )}
               </div>
+
+              {/*
+                The action menu is a SIBLING of the arena, not a child of it.
+                On a wide screen it is absolutely positioned over the arena's bottom-left corner
+                exactly as before (`.bt-window` is the containing block, and the arena fills it).
+                On a phone it becomes an ordinary block underneath the arena — which is the only
+                way the buttons can be full-width and finger-sized, and it also removes an
+                overlay that used to swallow taps aimed at FIGHT.
+              */}
+              <div className="bt-menu-wrap">{renderMenu()}</div>
             </div>
           </div>
         </div>

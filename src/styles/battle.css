@@ -176,6 +176,10 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  /* The containing block for `.bt-menu-wrap`, which is a sibling of the arena rather than a
+     child of it so a phone can drop it below the arena instead of on top of it. On a wide
+     screen the arena fills this box, so the overlay lands exactly where it always did. */
+  position: relative;
 }
 .bt-stage {
   position: relative;
@@ -512,8 +516,40 @@
   .bt-main { flex-direction: column; height: auto; }
   /* stacked: log sits BELOW the arena, so its divider moves to the top edge */
   .bt-log { flex: 0 0 auto; order: 2; height: 150px; border-right: none; border-top: 1px solid var(--line); }
-  .bt-window { order: 1; }
-  .bt-stage { height: 340px; }
+
+  /*
+   * ⚠ THE ARENA USED TO VANISH ENTIRELY BELOW 900px, which made every battle unplayable on a
+   * phone: no grass, no sprites, no HP bars, and — because the menu was overlaid inside the
+   * arena — no reachable FIGHT button either. Taps aimed at it hit the VS banner instead.
+   *
+   * The cause is a flex default, not a missing rule. `.bt-window { flex: 1 }` means
+   * `flex: 1 1 0%`, and `.bt-stage { flex: 1; min-height: 0 }` inside it. Once `.bt-main`
+   * stops being a fixed-height row and becomes `height: auto`, there is no longer any height
+   * to distribute: the window's basis is 0, it is free to shrink, and the stage's own
+   * `height: 340px` is only a basis that `min-height: 0` lets collapse. Net height: zero.
+   *
+   * So both must be taken OUT of the flexible layout on mobile. `flex: 0 0 auto` makes the
+   * declared height definite, which is what a stacked column needs.
+   */
+  .bt-window { order: 1; flex: 0 0 auto; }
+  .bt-stage { flex: 0 0 auto; height: 340px; }
+
+  /* Out of the arena and under it, full width — see the note in Battle.tsx. */
+  .bt-menu-wrap {
+    position: static;
+    left: auto;
+    bottom: auto;
+    width: auto;
+    padding: 10px 0 2px;
+  }
+  /* Finger-sized: 52px rows and a full-width grid rather than 40px inside a 48% overlay. */
+  .bt-menu { grid-auto-rows: 52px; gap: 10px; }
+  .bt-movegrid { grid-auto-rows: 54px; gap: 8px; }
+  .bt-moverow { gap: 8px; }
+  .bt-moverow .bt-cmd.back { width: 88px; height: 54px; }
+  .bt-menu.list { max-height: none; }
+  .bt-listitem { min-height: 44px; }
+
   /* the log lines list is short on mobile — keep newest visible */
   .bt-log-lines { font-size: 13px; }
 }
@@ -531,16 +567,45 @@
   .bt-box, .bt-hpbar, .bt-stats { width: 168px; }
   .bt-foe .bt-box-wrap { left: -96px; top: -6px; }
   .bt-me .bt-box-wrap { right: -110px; bottom: -40px; }
-  .bt-menu-wrap { width: 62%; }
-  .bt-move { font-size: 12px; padding: 3px 9px; }
-  .bt-movegrid { grid-auto-rows: 42px; }
-  .bt-moverow .bt-cmd.back { width: 64px; height: 42px; font-size: 12px; }
+  .bt-move { font-size: 13px; padding: 4px 10px; }
   .bt-timer { width: 44px; height: 44px; }
+
+  /* A narrow arena has no room for the turn badge and the foe's HP box on the same line —
+     the badge sat on top of "Lv100". Bottom-left is empty grass on every screen size. */
+  .bt-turn { top: auto; right: auto; bottom: 8px; left: 10px; }
+
+  /* Moves: stack Back UNDER the 2×2 grid so the moves get the full width instead of
+     surrendering a Back-sized column and leaving a hole beside the first row. */
+  .bt-moverow { flex-direction: column; align-items: stretch; }
+  .bt-moverow .bt-cmd.back { width: 100%; height: 44px; }
 }
 
+/*
+ * ⚠ The HP boxes hang off their combatant by a NEGATIVE offset, and the combatant is placed by
+ * percentage inside the arena — so both numbers have to come down together at every step or the
+ * box slides past the arena edge and the HP figure gets clipped away. Measured per width with
+ * scripts/mobile-shots.mjs, which reports any element whose right edge is past the viewport.
+ */
 @media (max-width: 420px) {
   .bt-box, .bt-hpbar, .bt-stats { width: 138px; }
   .bt-foe .bt-box-wrap { left: -78px; }
   .bt-me .bt-box-wrap { right: -92px; }
-  .bt-menu-wrap { width: 72%; }
+  /* A phone arena is shorter than it is wide; 300px leaves room for the menu below it
+     without pushing the log off the first screenful. */
+  .bt-stage { height: 300px; }
+  .bt-move small { font-size: 10px; gap: 6px; }
+}
+
+/* 320–340px: the player's HP box was 12px past the arena edge, so its HP number was clipped. */
+@media (max-width: 340px) {
+  .bt-stage { height: 272px; }
+  .bt-box, .bt-hpbar, .bt-stats { width: 120px; }
+  .bt-sprite { width: 96px; height: 96px; }
+  .bt-me .bt-sprite { width: 104px; height: 104px; }
+  .bt-foe { right: 4%; }
+  .bt-foe .bt-box-wrap { left: -64px; top: -2px; }
+  .bt-me { left: 28%; }
+  .bt-me .bt-box-wrap { right: -58px; bottom: -34px; }
+  .bt-balls img { width: 13px; height: 13px; }
+  .bt-move { font-size: 12px; padding: 3px 8px; }
 }

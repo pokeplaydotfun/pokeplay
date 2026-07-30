@@ -46,13 +46,23 @@
   border-left: 1px solid var(--line);
 }
 
+/*
+ * Kept three-across on a phone rather than stacked. Stacking three tiles turned the top of the
+ * board into a full screen of headline numbers you had to scroll past to reach the actual
+ * leaderboard; the figures are short enough to sit side by side if the type comes down a step.
+ */
 @media (max-width: 560px) {
-  .lb__stats {
-    grid-template-columns: 1fr;
+  .lb__stats > div {
+    padding: 14px 6px;
   }
-  .lb__stats > div + div {
-    border-left: none;
-    border-top: 1px solid var(--line);
+  .lb__stats .stat__value,
+  .lb__stats > div > div:first-child {
+    font-size: 1.35rem;
+  }
+  .lb__stats .stat__label,
+  .lb__stats > div > div:last-child {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
   }
 }
 
@@ -70,6 +80,110 @@
   min-width: 620px;
   border-collapse: collapse;
   font-size: 0.94rem;
+}
+
+/*
+ * On a phone the 620px table sat in its scroller with nothing to suggest it scrolled, so the
+ * board simply looked cut off after "L" — the win rate and the P/L column, which is the whole
+ * point of a wagering leaderboard, were invisible unless you happened to swipe the table.
+ *
+ * Rather than teach people to swipe, make it FIT. The two columns that go are the two that can
+ * be worked out from the ones that stay: "Played" is W+L, and "Win rate" is W/(W+L). P/L keeps
+ * its place — on a site where people stake ETH, that is the column they came for, and it cannot
+ * be derived from anything else on the row.
+ */
+@media (max-width: 620px) {
+  .lb {
+    min-width: 0;
+    font-size: 0.9rem;
+  }
+  .lb thead th,
+  .lb tbody td {
+    padding: 12px 8px;
+  }
+  .lb thead th:first-child,
+  .lb tbody td:first-child {
+    padding-left: 12px;
+  }
+  .lb thead th:last-child,
+  .lb tbody td:last-child {
+    padding-right: 12px;
+  }
+  .lb__played,
+  .lb__rate,
+  /* the WIN RATE header, which carries no class of its own */
+  .lb thead th:nth-child(6) {
+    display: none;
+  }
+  .lb__rank-h,
+  .lb__rank {
+    width: 34px;
+  }
+  /* The wallet moves under the name instead of beside it — side by side they were together
+     wider than the column and pushed the numbers off the screen. */
+  .lb__addr {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.72rem;
+  }
+  .lb__name {
+    margin-right: 0;
+  }
+}
+
+/* The smallest phones (SE, older Android) are ~19px short of fitting the five columns. */
+@media (max-width: 380px) {
+  .lb {
+    font-size: 0.86rem;
+  }
+  /* Measured, not guessed: at 360px the row came to 347px against a 334px box, and "P/L (ETH)"
+     was the widest header on it at 91px. Dropping the unit and tightening the tracking takes
+     the row to ~312px. */
+  .lb thead th {
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+  }
+  .lb__unit {
+    display: none;
+  }
+  /*
+   * The wallet under each name goes too. It is monospace, so it sets the Player column's
+   * minimum width all by itself (~100px), and on a 320px screen that is the difference between
+   * a table that fits and one that hides its P/L column. Players are identified by username
+   * here; anyone WITHOUT a username still shows their address, because that row renders the
+   * address as the name itself rather than as this secondary line.
+   */
+  .lb__addr {
+    display: none;
+  }
+  .lb thead th,
+  .lb tbody td {
+    padding: 12px 5px;
+  }
+  .lb thead th:first-child,
+  .lb tbody td:first-child {
+    padding-left: 9px;
+  }
+  .lb thead th:last-child,
+  .lb tbody td:last-child {
+    padding-right: 9px;
+  }
+}
+
+/* 320px (SE 1st gen and similar) is short by the last ~7px, which is all cell padding. */
+@media (max-width: 340px) {
+  .lb thead th,
+  .lb tbody td {
+    padding: 12px 4px;
+  }
+  .lb thead th:first-child,
+  .lb tbody td:first-child {
+    padding-left: 7px;
+  }
+  .lb thead th:last-child,
+  .lb tbody td:last-child {
+    padding-right: 7px;
+  }
 }
 
 .lb thead th {

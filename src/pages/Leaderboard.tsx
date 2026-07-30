@@ -214,10 +214,12 @@ export default function Leaderboard() {
                   <th>Player</th>
                   <th className="lb__num">W</th>
                   <th className="lb__num">L</th>
-                  <th className="lb__num lb__mid">Played</th>
+                  <th className="lb__num lb__mid lb__played">Played</th>
                   <th className="lb__num lb__mid">Win rate</th>
                   <th className="lb__num lb__mid" title="Realised profit or loss from settled wagers">
-                    P/L ({CURRENCY})
+                    {/* The unit is dropped on the narrowest phones: it was the single widest
+                        header on the row and every figure on the site is already in ETH. */}
+                    P/L<span className="lb__unit"> ({CURRENCY})</span>
                   </th>
                 </tr>
               </thead>
@@ -253,7 +255,7 @@ export default function Leaderboard() {
                       </td>
                       <td className="lb__num lb__wins">{r.wins}</td>
                       <td className="lb__num">{r.losses}</td>
-                      <td className="lb__num lb__mid">{r.played}</td>
+                      <td className="lb__num lb__mid lb__played">{r.played}</td>
                       <td className="lb__num lb__mid lb__rate">{Math.round(r.winrate * 100)}%</td>
                       <td
                         className={`lb__num lb__mid lb__pnl${
