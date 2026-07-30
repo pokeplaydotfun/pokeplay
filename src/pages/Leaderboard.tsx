@@ -190,10 +190,21 @@ export default function Leaderboard() {
         {rows === null ? (
           <Spinner label="Loading the leaderboard…" />
         ) : rows.length === 0 ? (
-          <Empty
-            title="No battles yet"
-            body="Nobody has finished a match, so there is nothing to rank. The first result puts a name here."
-          />
+          /* Two different empty boards, and saying the wrong one is a lie the page tells about
+             itself: with matches already played, "nobody has finished a match" reads as broken.
+             `stats.battles` counts finished non-practice battles, which is exactly the
+             distinction. */
+          stats && stats.battles > 0 ? (
+            <Empty
+              title="Nobody ranked yet"
+              body="Matches have been played, but none of them count towards the board yet. Practice against the AI is never ranked — play another trainer, or stake a match, and the result lands here."
+            />
+          ) : (
+            <Empty
+              title="No battles yet"
+              body="Nobody has finished a match, so there is nothing to rank. The first result puts a name here."
+            />
+          )
         ) : (
           <div className="lb__scroll">
             <table className="lb">

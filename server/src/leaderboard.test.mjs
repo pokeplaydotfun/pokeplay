@@ -18,7 +18,13 @@ const { db } = await import('./db.js')
 
 const BOT = '0x000000000000000000000000000000000000b0t5'
 const CAP = 3
-const MIN_OPPONENTS = 3
+/**
+ * Mirrors the endpoint's default. It was 3, which kept a two-account farm off the board
+ * entirely — but only incidentally, since three alts cost a farmer nothing and the same bar
+ * hid every honest player who had so far met one opponent. The farm defence that carries the
+ * weight is CAP, so these checks now measure the farm in WINS rather than in visibility.
+ */
+const MIN_OPPONENTS = 1
 
 let passed = 0
 const check = (name, fn) => {
@@ -141,10 +147,36 @@ user(honest, 'honest')
 // The attack: 200 wins against one alt account.
 for (let i = 0; i < 200; i++) battle(farmer, alt)
 
-check('a two-account farm does not appear on the board at all', () => {
+check('200 farmed wins against one alt are worth only the cap', () => {
   const board = leaderboard()
   const row = board.find((r) => r.address === farmer)
-  assert.ok(!row, `farmer ranked with ${row?.wins} wins after 200 farmed games`)
+  // The farmer is visible now — one real opponent is all it takes to be listed. What must
+  // hold is that the farm bought them almost nothing: 200 games, worth 3.
+  assert.ok(row, 'farmer should be listed after playing a non-bot opponent')
+  assert.strictEqual(
+    row.wins, CAP,
+    `200 farmed wins counted as ${row.wins}, expected the cap of ${CAP}`,
+  )
+})
+
+check('an honest player out-ranks the farm on breadth alone', () => {
+  // The farm's ceiling is CAP wins from one rival. Anyone who beats CAP+1 distinct people
+  // passes it, so the farm can never hold the top of a board with real players on it.
+  const wide = addr(90)
+  user(wide, 'wide')
+  for (let n = 91; n <= 94; n++) {
+    user(addr(n), `wideopp${n}`)
+    battle(wide, addr(n))
+  }
+  const board = leaderboard()
+  const wideRow = board.find((r) => r.address === wide)
+  const farmRow = board.find((r) => r.address === farmer)
+  assert.ok(wideRow, 'the honest wide player is missing')
+  assert.ok(wideRow.wins > farmRow.wins, `farm ${farmRow.wins} >= honest ${wideRow.wins}`)
+  assert.ok(
+    board.indexOf(wideRow) < board.indexOf(farmRow),
+    'the farm out-ranked an honest player with more distinct wins',
+  )
 })
 
 check('an honest player with three distinct opponents does rank', () => {

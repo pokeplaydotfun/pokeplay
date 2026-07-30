@@ -817,8 +817,22 @@ app.get('/api/live', (_req, res) => {
  */
 const RIVAL_CAP = Number(process.env.RIVAL_CAP ?? 3)
 
-/** Distinct opponents needed to rank on free play alone. Any paid wager also qualifies. */
-const MIN_OPPONENTS = Number(process.env.MIN_OPPONENTS ?? 3)
+/**
+ * Distinct opponents needed to rank on free play alone. Any paid wager also qualifies.
+ *
+ * This was 3, and it was the wrong tool for the job. RIVAL_CAP is what actually resists
+ * farming — it puts a hard ceiling on what any single alt account can be worth. The
+ * distinct-opponent bar adds almost nothing on top of that, because wallets and usernames are
+ * free: a farmer who needs three faces simply makes three alts, which costs minutes. What it
+ * did do was hide every genuine early player, so a launched site with real matches being
+ * played showed an empty board and an empty-state message insisting nobody had played.
+ *
+ * At 1 it means only "you have beaten or lost to somebody who is not the practice bot", and a
+ * two-account farm can still never be worth more than RIVAL_CAP wins. Raise it back with
+ * MIN_OPPONENTS if the board ever needs tightening; both this and /api/stats read it, so they
+ * cannot disagree.
+ */
+const MIN_OPPONENTS = Number(process.env.MIN_OPPONENTS ?? 1)
 
 /**
  * The leaderboard, computed from actual battles rather than the running totals
