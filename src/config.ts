@@ -71,10 +71,28 @@ export const ESCROW_ADDRESS = (import.meta.env.VITE_ESCROW_ADDRESS ??
 export const TOURNAMENT_POOL_ADDRESS = (import.meta.env.VITE_TOURNAMENT_POOL_ADDRESS ??
   '0x4d75665a2c461b3c115c353a845f0dd2fc11f6ad') as string
 
-/** The token, to be launched on Pons. Empty renders as "TBA". */
+/**
+ * The $PLAY contract address, written here at launch by `scripts/launch-token.sh`.
+ *
+ * It is a DEFAULT in the source, not a build-time env var, for the same reason the escrow
+ * and pool addresses above are: `scripts/deploy.sh` ships the working tree with a fixed
+ * build line, so an address that lived only in the environment would silently disappear on
+ * the next routine deploy and put "TBA" back on the homepage of a launched token. A CA is
+ * public and permanent, so there is nothing to hide by keeping it out of the repo.
+ *
+ * Empty until launch — and it must stay a real address or empty, never a hex-shaped
+ * placeholder, because a placeholder in this slot is something a visitor can copy and send
+ * money to. `VITE_TOKEN_ADDRESS` still overrides it for a local or testnet build.
+ */
+const TOKEN_ADDRESS_DEFAULT = '0x1dd4495325fea70a48966b1fff189d30a44a7840'
+
+/** The token, launched on Pons. Empty renders as "TBA". */
 export const TOKEN = {
   ticker: '$PLAY',
-  address: (import.meta.env.VITE_TOKEN_ADDRESS ?? '') as string,
+  // `||`, not `??`: an env var that is DEFINED BUT EMPTY (which is what a build script that
+  // forwards an unset variable produces) must fall back to the launched default rather than
+  // blank the CA on a live token.
+  address: ((import.meta.env.VITE_TOKEN_ADDRESS || TOKEN_ADDRESS_DEFAULT) ?? '') as string,
   launchpad: 'Pons',
   /** Live figures are read on-chain; null until the token exists. */
   marketCapUsd: null as number | null,

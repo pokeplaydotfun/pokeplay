@@ -95,6 +95,10 @@ say "Building the frontend"
 # Slabs (the ported gacha) is LIVE — the merged section is on. It talks to its backend
 # via the Caddy subpath. To hide it again, set VITE_SLABS_ENABLED=false (and drop the
 # API url); the section is gated on SLABS_ENABLED so that ships the wager site clean.
+# The launched $PLAY address is NOT set here on purpose: it lives as a default in
+# src/config.ts, so every routine deploy keeps it. Pinning it in this build line would mean
+# a deploy run without the variable silently put "TBA" back on a launched token's homepage.
+# An exported VITE_TOKEN_ADDRESS is still inherited by the build and overrides the default.
 VITE_API_BASE="" VITE_SLABS_ENABLED=true VITE_API_URL="https://${DOMAIN}/slabs-api" npm run build
 
 say "Shipping files"

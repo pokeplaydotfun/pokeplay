@@ -266,8 +266,24 @@ read from the Pons pool by the cards backend at `/token/stats`. Until `PONS_TOKE
 endpoint reports `live: false` and the page shows dashes with a plain statement that the token has not
 launched, rather than zeroes that would read as a live market with no trading.
 
-Launching is a matter of setting the token address in the backend environment and
-`VITE_TOKEN_ADDRESS` for the frontend. No code change.
+Launching is one command once the token exists on Pons:
+
+```
+./scripts/launch-token.sh --dry-run <tokenAddress> [feeWallet]   # verifies, changes nothing
+./scripts/launch-token.sh          <tokenAddress> [feeWallet]    # goes live
+```
+
+It checks the contract and its WETH pool on chain, refuses a fee wallet that already collects
+Pons fees for some other token (the locker is global, so those fees would be reported as this
+token's), writes `PONS_TOKEN_ADDRESS` and `PONS_FEE_WALLET` into the cards backend environment
+and restarts it, waits for `/token/stats` to report `live: true`, then writes the address into
+`TOKEN_ADDRESS_DEFAULT` in `src/config.ts` and deploys, confirming the address really reached
+the served bundle. `--clear` reverses all of it.
+
+The address is a source default rather than a build variable on purpose: `scripts/deploy.sh`
+ships the working tree with a fixed build line, so an address that lived only in the
+environment would vanish on the next routine deploy and put "TBA" back on a launched token.
+The run leaves `src/config.ts` modified — commit it.
 
 
 ## Layout
